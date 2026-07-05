@@ -8,7 +8,7 @@ int main()
     addr.setIP("192.168.233.90");
     addr.setPort(7129);
 
-    qinmo::net::ReactorTcpServer server(&loop, addr, 0);
+    qinmo::net::TcpServer server(&loop, addr, 0);
     server.setConnectFunc(
         [](const qinmo::net::RTcpConnPtr& conn) -> void
         {

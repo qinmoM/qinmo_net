@@ -35,7 +35,7 @@ int main()
     InetAddr addr(true);
     addr.setIP("127.0.0.1");
     addr.setPort(7129);
-    ReactorTcpServer server(&loop, addr, 4);
+    TcpServer server(&loop, addr, 4);
     server.setMessageFunc(
         [](const RTcpConnPtr& conn, PacketBuffer& buffer, Timestamp time) -> void
         {

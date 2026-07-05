@@ -13,7 +13,7 @@ int main()
     qinmo::net::InetAddr addr;
     // addr.setIP(...);
     // addr.setPort(...);
-    qinmo::net::ReactorTcpServer server(&loop, addr, 0);
+    qinmo::net::TcpServer server(&loop, addr, 0);
     // server.setConnectFunc(...);
     // server.setDisconnectFunc(...);
 

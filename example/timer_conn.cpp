@@ -10,7 +10,7 @@ int main()
     InetAddr addr(true);
     addr.setIP("192.168.233.90");
     addr.setPort(7129);
-    ReactorTcpServer server(&loop, addr, 1);
+    TcpServer server(&loop, addr, 1);
     server.setConnectFunc(
         [](const RTcpConnPtr& conn) ->void
         {
