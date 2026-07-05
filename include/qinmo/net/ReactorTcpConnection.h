@@ -14,11 +14,11 @@ namespace qinmo
 namespace net
 {
 
-class ReactorTcpConnect;
+class ReactorTcpConnection;
 
 
 
-using RTcpConnPtr = std::shared_ptr<ReactorTcpConnect>;
+using RTcpConnPtr = std::shared_ptr<ReactorTcpConnection>;
 
 /// @brief connecting callback
 using TimerConnFunc = std::function<void(const RTcpConnPtr&)>;
@@ -39,19 +39,19 @@ using CloseFunc = std::function<void()>;
 
 
 
-class ReactorTcpConnect
+class ReactorTcpConnection
     // Inherit this template class  when  needing to create shared_ptr via 'this' pointer inside the class
-    : public std::enable_shared_from_this<ReactorTcpConnect>
+    : public std::enable_shared_from_this<ReactorTcpConnection>
 {
 public:
-    ReactorTcpConnect(EventLoop* loop, TcpConnect&& sock, const InetAddr& localAddr, const InetAddr& peerAddr);
-    ~ReactorTcpConnect();
+    ReactorTcpConnection(EventLoop* loop, TcpConnect&& sock, const InetAddr& localAddr, const InetAddr& peerAddr);
+    ~ReactorTcpConnection();
 
-    ReactorTcpConnect(const ReactorTcpConnect&) = delete;
-    ReactorTcpConnect& operator=(const ReactorTcpConnect&) = delete;
+    ReactorTcpConnection(const ReactorTcpConnection&) = delete;
+    ReactorTcpConnection& operator=(const ReactorTcpConnection&) = delete;
 
-    ReactorTcpConnect(ReactorTcpConnect&&) = delete;
-    ReactorTcpConnect& operator=(ReactorTcpConnect&&) = delete;
+    ReactorTcpConnection(ReactorTcpConnection&&) = delete;
+    ReactorTcpConnection& operator=(ReactorTcpConnection&&) = delete;
 
 public:
     int getfd() const;

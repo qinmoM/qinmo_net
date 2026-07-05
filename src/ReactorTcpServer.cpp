@@ -111,7 +111,7 @@ void ReactorTcpServer::newConnect(Timestamp time)
 
     int tempfd = cli.getfd();
     RTcpConnPtr conn =
-        std::make_shared<ReactorTcpConnect>(
+        std::make_shared<ReactorTcpConnection>(
             subLoop,
             std::move(cli),
             localAddr,
@@ -123,7 +123,7 @@ void ReactorTcpServer::newConnect(Timestamp time)
     conn->setDisconnectFunc(disconnect_);
     conn->setMessageFunc(message_);
     conn->setWriteCompleteFunc(writeComplete_);
-    std::weak_ptr<ReactorTcpConnect> weakConn = conn;
+    std::weak_ptr<ReactorTcpConnection> weakConn = conn;
     conn->setCloseFunc(
         [this, weakConn]() -> void
         {

@@ -2,7 +2,7 @@
  * @file <qinmo/net.h>
  * @brief A Simple Net Library
  * @details This module covers:
- *      business-layer           : ReactorTCPServer & ReactorTCPConnect
+ *      business-layer           : ReactorTCPServer & ReactorTCPConnection
  *      Low-level                : SocketTCP & SocketUDP
  *      Common non-net utilities : println, StringView, Logger ...
  * 
@@ -13,9 +13,7 @@
 #pragma once
 
 
-
 #include <qinmo/base/Logger.h>
-
 
 
 #if defined(__linux__)
@@ -26,7 +24,7 @@ namespace qinmo
 {
 namespace net
 {
-using TcpConnect = ReactorTcpConnect;
+using TcpConnection = ReactorTcpConnection;
 using TcpServer = ReactorTcpServer;
 } // namespace qinmo::net
 } // namespace qinmo

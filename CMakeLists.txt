@@ -19,7 +19,7 @@ add_library(qinmo_net
     ${CMAKE_CURRENT_SOURCE_DIR}/src/InetAddr.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/PacketBuffer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/PollerConfig.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ReactorTcpConnect.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ReactorTcpConnection.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ReactorTcpServer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SocketTCP.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SocketUDP.cpp
