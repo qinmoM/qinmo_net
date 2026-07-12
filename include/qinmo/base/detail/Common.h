@@ -1,10 +1,22 @@
 #pragma once
 
+#include <string.h>
+
+#if defined(__linux__)
+
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/eventfd.h>
 #include <sys/timerfd.h>
-#include <string.h>
+
+#elif defined(_WIN32)
+
+#include <stdint.h>
+#include <windows.h>
+
+#endif
+
+
 
 /// @namespace qinmo
 namespace qinmo
@@ -13,6 +25,8 @@ namespace qinmo
 /// @warning For internal use only, do NOT use it from outside the library
 namespace detail
 {
+
+#if defined(__linux__)
 
 inline char* strerror(int code) { return ::strerror(code); };
 
@@ -26,7 +40,7 @@ inline ssize_t write(int fd, const void* ptr, size_t count) { return ::write(fd,
 inline int eventfd(unsigned int initval, int flags) { return ::eventfd(initval, flags); }
 
 /*
-                syscall
+                thread ID in system call
 */
 inline long tid() { return ::syscall(SYS_gettid); }
 
@@ -38,6 +52,15 @@ inline long tid() { return ::syscall(SYS_gettid); }
 inline int timerfd_create(int clockid, int flags) { return ::timerfd_create(clockid, flags); }
 /// @param flags 0 : relative time  |  TFD_TIMER_ABSTIME : absolute time
 inline int timerfd_settime(int fd, int flags, const itimerspec* newVal, itimerspec* oldVal) { return ::timerfd_settime(fd, flags, newVal, oldVal); }
+
+#elif defined(_WIN32)
+
+/*
+                thread ID in system call
+*/
+inline DWORD tid() { return ::GetCurrentThreadId(); }
+
+#endif
 
 } // namespace detail
 } // namespace qinmo

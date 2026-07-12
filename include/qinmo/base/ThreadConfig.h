@@ -9,12 +9,14 @@ namespace qinmo
 namespace detail
 {
 
-#ifdef __linux__
+#if defined(__linux__)
     using ThreadIDType = pid_t;
 
     static constexpr ThreadIDType g_ThreadIDTypeEmpty = 0;
-#else
-    #error "Platform not supported"
+#elif defined(_WIN32)
+    using ThreadIDType = DWORD;
+
+    static constexpr ThreadIDType g_ThreadIDTypeEmpty = 0;
 #endif
 
 
