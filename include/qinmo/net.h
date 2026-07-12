@@ -31,7 +31,7 @@ using TcpServer = ReactorTcpServer;
 
 #elif defined(_WIN32)
 
-#error "Platform not supported"
+
 
 #else
 

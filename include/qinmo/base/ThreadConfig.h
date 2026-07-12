@@ -1,6 +1,7 @@
 #pragma once
 
 #include "detail/Common.h"
+#include <stdint.h>
 
 namespace qinmo
 {

@@ -11,7 +11,6 @@
 
 #elif defined(_WIN32)
 
-#include <stdint.h>
 #include <windows.h>
 
 #endif
