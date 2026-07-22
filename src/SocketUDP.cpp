@@ -3,20 +3,20 @@
 namespace qinmo::net
 {
 
-SocketUDP SocketUDP::createRaw(const InetAddr& addr, int flags)
+SocketUDP SocketUDP::createRaw(const InetAddr& addr, SockFlags flags)
 {
     if (!addr.isValid())
         return SocketUDP();
 
-    return SocketUDP(detail::socket((addr.isIPv4() ? AF_INET : AF_INET6), SOCK_DGRAM | flags));
+    return SocketUDP(detail::socket((addr.isIPv4() ? AF_INET : AF_INET6), SOCK_DGRAM | static_cast<int>(flags)));
 }
 
 SocketUDP SocketUDP::createNonBlockOrDie(const InetAddr& addr)
 {
-    return createRaw(addr, SOCK_NONBLOCK | SOCK_CLOEXEC);
+    return createRaw(addr, SockFlags::NonBlocking | SockFlags::CloseOnExec);
 }
 
-SocketUDP SocketUDP::attach(const int fd)
+SocketUDP SocketUDP::attach(const SocketType fd)
 {
     if (SOCK_DGRAM != detail::getSocketType(fd))
         return SocketUDP();
@@ -27,7 +27,7 @@ SocketUDP SocketUDP::attach(const int fd)
 
 SocketUDP::SocketUDP() { }
 
-SocketUDP::SocketUDP(int fd)
+SocketUDP::SocketUDP(SocketType fd)
     : sockfd_(fd)
 { }
 
@@ -40,7 +40,7 @@ SocketUDP::~SocketUDP()
 SocketUDP::SocketUDP(SocketUDP&& other) noexcept
 {
     sockfd_ = other.sockfd_;
-    other.sockfd_ = -1;
+    other.sockfd_ = g_SocketTypeEmpty;
     state_ = other.state_;
     other.state_ = 0;
 }
@@ -48,7 +48,7 @@ SocketUDP::SocketUDP(SocketUDP&& other) noexcept
 SocketUDP& SocketUDP::operator=(SocketUDP&& other) noexcept
 {
     sockfd_ = other.sockfd_;
-    other.sockfd_ = -1;
+    other.sockfd_ = g_SocketTypeEmpty;
     state_ = other.state_;
     other.state_ = 0;
     return *this;
@@ -57,10 +57,10 @@ SocketUDP& SocketUDP::operator=(SocketUDP&& other) noexcept
 
 bool SocketUDP::isValid() const
 {
-    return -1 != sockfd_;
+    return g_SocketTypeEmpty != sockfd_;
 }
 
-int SocketUDP::getfd() const
+SocketType SocketUDP::getfd() const
 {
     return sockfd_;
 }
@@ -117,7 +117,7 @@ ssize_t SocketUDP::sendto(const char* buf, size_t len, const InetAddr& peer)
 
 bool SocketUDP::bind(const InetAddr& local)
 {
-    if (-1 == sockfd_ || isBind())
+    if (!isValid() || isBind())
         return false;
 
     return detail::bind(sockfd_, local.getSockaddr());
@@ -125,7 +125,7 @@ bool SocketUDP::bind(const InetAddr& local)
 
 bool SocketUDP::connect(const InetAddr& peer)
 {
-    if (-1 == sockfd_ || isConnect())
+    if (!isValid() || isConnect())
         return false;
 
     return detail::connect(sockfd_, peer.getSockaddr());
@@ -155,10 +155,10 @@ ssize_t SocketUDP::send(const char* buf, size_t len)
 
 bool SocketUDP::close()
 {
-    if (-1 == sockfd_ || !qinmo::detail::close(sockfd_))
+    if (!isValid() || -1 == qinmo::net::detail::close(sockfd_))
         return false;
 
-    sockfd_ = -1;
+    sockfd_ = g_SocketTypeEmpty;
     return true;
 }
 
