@@ -13,7 +13,7 @@ namespace net
 /// @note
 ///   default constructor is empty.
 ///   you must specify whether to Create a new instance or Attach to an existing one. Such as:
-/// @note - SocketUDP sock1 = SocketUDP::createRaw(InetAddr(), SOCK_NONBLOCK | SOCK_CLOEXEC)
+/// @note - SocketUDP sock1 = SocketUDP::createRaw(InetAddr(), SockFlags::NonBlocking | SockFlags::CloseOnExec)
 /// @note - SocketUDP sock2(SocketUDP::attach(1))
 class SocketUDP
 {
@@ -22,15 +22,16 @@ public:
     /// @return using the move constructor
     /// @note better to check whether the returned value is valid : Call function isValid()
     /// @note the addr only use protocol, you must bind after created
-    static SocketUDP createRaw(const InetAddr& addr, int flags = 0);
-    /// @brief equal to createRaw(InetAddr(), SOCK_NONBLOCK | SOCK_CLOEXEC)
+    /// @note has no  SockFlags::CloseOnExec  in the windows
+    static SocketUDP createRaw(const InetAddr& addr, SockFlags flags = SockFlags::None);
+    /// @brief equal to createRaw(InetAddr(), SockFlags::NonBlocking | SockFlags::CloseOnExec)
     /// @note better to check whether the returned value is valid: call isValid()
     static SocketUDP createNonBlockOrDie(const InetAddr& addr);
     /// @brief attach an existing socket
     /// @param fd file descriptor
     /// @return using the move constructor
     /// @note must check whether the returned value is valid : Call function isValid()
-    static SocketUDP attach(const int fd);
+    static SocketUDP attach(const SocketType fd);
 
 public:
     SocketUDP();
@@ -46,7 +47,7 @@ public:
     /// @return return true if has been initialized
     bool isValid() const;
     /// @brief get current file descriptor
-    int getfd() const;
+    SocketType getfd() const;
     /// @brief return true if has been bind local address
     bool isBind() const;
     /// @brief return true if has been connect peer address
@@ -78,13 +79,13 @@ public:
     bool setReuseAddr(bool enable);
 
 private:
-    SocketUDP(int fd);
+    SocketUDP(SocketType fd);
 
 private:
     static constexpr uint8_t IsBind = 1;
     static constexpr uint8_t IsConnect = 2;
 
-    int sockfd_ = -1;
+    SocketType sockfd_ = g_SocketTypeEmpty;
     uint8_t state_ = 0;
 
 };
