@@ -14,7 +14,7 @@ namespace net
 ///   default constructor is empty.
 ///   you must specify whether to Create a new instance or Attach to an existing one. Such as:
 ///
-///     - SocketTCP sock1 = SocketTCP::createRaw(InetAddr(), SOCK_NONBLOCK | SOCK_CLOEXEC)
+///     - SocketTCP sock1 = SocketTCP::createRaw(InetAddr(), SockFlags::NonBlocking | SockFlags::CloseOnExec)
 ///
 ///     - SocketTCP sock2(SocketTCP::attach(1))
 class SocketTCP
@@ -24,15 +24,16 @@ public:
     /// @return using the move constructor
     /// @note better to check whether the returned value is valid : Call function isValid()
     /// @note the addr only use protocol, you must bind after created
-    static SocketTCP createRaw(const InetAddr& addr, int flags = 0);
-    /// @brief equal to createRaw(InetAddr(), SOCK_NONBLOCK | SOCK_CLOEXEC)
+    /// @note has no  SockFlags::CloseOnExec  in the windows
+    static SocketTCP createRaw(const InetAddr& addr, SockFlags flags = SockFlags::None);
+    /// @brief equal to createRaw(InetAddr(), SockFlags::NonBlocking | SockFlags::CloseOnExec)
     /// @note better to check whether the returned value is valid: call isValid()
     static SocketTCP createNonBlockOrDie(const InetAddr& addr);
     /// @brief attach an existing socket
     /// @param fd file descriptor
     /// @return using the move constructor
     /// @note must check whether the returned value is valid : Call function isValid()
-    static SocketTCP attach(const int fd);
+    static SocketTCP attach(const SocketType fd);
 
 public:
     SocketTCP();
@@ -48,7 +49,7 @@ public:
     /// @return return true if has been initialized
     bool isValid() const;
     /// @brief get current file descriptor
-    int getfd() const;
+    SocketType getfd() const;
     /// @brief get local address
     /// @note need to Check if the returned InetAddr is valid : Call function isValid()
     InetAddr getLocalAddr() const;
@@ -65,7 +66,7 @@ public:
     /// @return a new SocketTCP object
     /// @note must check whether InetAddr and SocketTCP is invalid
     SocketTCP accept(InetAddr& addr, int flags = 0);
-    /// @brief equal to accept(addr, SOCK_NONBLOCK | SOCK_CLOEXEC)
+    /// @brief equal to accept(addr, SockFlags::NonBlocking | SockFlags::CloseOnExec)
     SocketTCP acceptNonBlockOrDie(InetAddr& addr);
     /// @brief connect server
     /// @param addr server address
@@ -85,10 +86,10 @@ public:
     bool setKeepAlive(bool enable);
 
 private:
-    SocketTCP(int fd);
+    SocketTCP(SocketType fd);
 
 private:
-    int sockfd_;
+    SocketType sockfd_ = g_SocketTypeEmpty;
 
 };
 
