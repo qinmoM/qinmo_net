@@ -238,7 +238,7 @@ inline bool isAddrReuse(SocketType sockfd) { int opt = 0; socklen_t len = sizeof
 
 inline int getSockOpt(SocketType sockfd, int level, int optname, void* opt, socklen_t& len) { return ::getsockopt(sockfd, level, optname, static_cast<char*>(opt), &len); }
 inline bool setAddrReuse(SocketType sockfd, bool enable) { int opt = enable ? 1 : 0; return 0 == ::setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, static_cast<char*>(static_cast<void*>(&opt)), sizeof(opt)); }
-// inline bool setPortReuse(SocketType sockfd, bool enable) { int opt = enable ? 1 : 0; return 0 == ::setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)); }
+inline bool setPortReuse(SocketType sockfd, bool enable) { return false; }
 inline bool setExclusiveAddrUse(SocketType sockfd, bool enable) { int opt = enable ? 1 : 0; return 0 == ::setsockopt(sockfd, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, static_cast<char*>(static_cast<void*>(&opt)), sizeof(opt)); }
 inline bool setTcpNoDelay(SocketType sockfd, bool enable) { int opt = enable ? 1 : 0; return 0 == ::setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, static_cast<char*>(static_cast<void*>(&opt)), sizeof(opt)); }
 inline bool setKeepAlive(SocketType sockfd, bool enable) { int opt = enable ? 1 : 0; return 0 == ::setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, static_cast<char*>(static_cast<void*>(&opt)), sizeof(opt)); }

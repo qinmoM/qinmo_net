@@ -104,18 +104,18 @@ bool SocketTCP::listen(int num)
     return true;
 }
 
-SocketTCP SocketTCP::accept(InetAddr& addr, int flags)
+SocketTCP SocketTCP::accept(InetAddr& addr, SockFlags flags)
 {
     detail::sockaddr temp;
     detail::zeroMemory(&temp, sizeof(temp));
-    int sockfd = detail::accept(sockfd_, temp, flags);
+    int sockfd = detail::accept(sockfd_, temp, static_cast<int>(flags));
     addr = InetAddr(temp);
     return SocketTCP::attach(sockfd);
 }
 
 SocketTCP SocketTCP::acceptNonBlockOrDie(InetAddr &addr)
 {
-    return accept(addr, static_cast<int>(SockFlags::NonBlocking | SockFlags::CloseOnExec));
+    return accept(addr, SockFlags::NonBlocking | SockFlags::CloseOnExec);
 }
 
 bool SocketTCP::connect(const InetAddr &addr)
