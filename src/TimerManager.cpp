@@ -1,7 +1,7 @@
 #include "qinmo/net/TimerManager.h"
+#include "qinmo/net/detail/Wrapper.h"
 #include "qinmo/net/EventLoop.h"
 #include "qinmo/base/Logger.h"
-#include "qinmo/net/detail/Wrapper.h"
 
 namespace qinmo
 {
