@@ -8,8 +8,6 @@
 
 
 
-#include "../../base/StringView.h"
-#include <stdint.h>
 
 #if defined(__linux__)
 
@@ -26,7 +24,9 @@
 
 #endif
 
+#include <stdint.h>
 #include "qinmo/base/detail/Common.h"
+#include "../../base/StringView.h"
 
 
 
@@ -130,17 +130,43 @@ inline sockaddr* sockaddr_cast(::sockaddr* addr) { return static_cast<sockaddr*>
 template <>
 inline const sockaddr* sockaddr_cast(const ::sockaddr* addr) { return static_cast<const sockaddr*>(static_cast<const void*>(addr)); }
 
+#if defined(__linux__)
+/// @brief network to host byte order, supporting 16-bit, 32-bit and 64-bit unsigned intergers
+/// @param net network order
+inline uint16_t netToHost16(uint16_t net) { return be16toh(net); }
+inline uint32_t netToHost32(uint32_t net) { return be32toh(net); }
+inline uint64_t netToHost64(uint64_t net) { return be64toh(net); }
+
+/// @brief host to network byte order, supporting 16-bit, 32-bit and 64-bit unsigned intergers
+/// @param host host order
+inline uint16_t hostToNet16(uint16_t host) { return htobe16(host); }
+inline uint32_t hostToNet32(uint32_t host) { return htobe32(host); }
+inline uint64_t hostToNet64(uint64_t host) { return htobe64(host); }
+#elif defined(_WIN32)
 /// @brief network to host byte order, supporting 16-bit, 32-bit and 64-bit unsigned intergers
 /// @param net network order
 inline uint16_t netToHost16(uint16_t net) { return ntohs(net); }
 inline uint32_t netToHost32(uint32_t net) { return ntohl(net); }
-inline uint64_t netToHost64(uint64_t net) { return ntohll(net); }
+inline uint64_t netToHost64(uint64_t net)
+{
+    constexpr uint16_t test = 0x0001;
+    const uint8_t temp = *(static_cast<const uint8_t*>(static_cast<const void*>(&test)));
+
+    if (!temp)
+        return net;
+    
+    uint32_t high = ntohl(static_cast<uint32_t>(net >> 32));
+    uint32_t low = ntohl(static_cast<uint32_t>(net & 0xffffffff));
+    return static_cast<uint64_t>(low) << 32 | high;
+}
 
 /// @brief host to network byte order, supporting 16-bit, 32-bit and 64-bit unsigned intergers
 /// @param host host order
 inline uint16_t hostToNet16(uint16_t host) { return htons(host); }
 inline uint32_t hostToNet32(uint32_t host) { return htonl(host); }
-inline uint64_t hostToNet64(uint64_t host) { return htonll(host); }
+inline uint64_t hostToNet64(uint64_t host) { return netToHost64(host); }
+#endif
+
 
 /// @brief initialize this memory block to zero
 /// @param buf pointer
@@ -213,18 +239,18 @@ inline bool listen(SocketType sockfd, int num = 128){ return 0 == ::listen(sockf
 inline SocketType accept(SocketType sockfd, sockaddr& addr, int flags = 0)
 {
     socklen_t len = sizeof(addr);
-    SocketType sockfd = ::accept(sockfd, sockaddr_cast<sockaddr, ::sockaddr>(&addr), &len);
+    SocketType fd = ::accept(sockfd, sockaddr_cast<sockaddr, ::sockaddr>(&addr), &len);
 
-    if (g_SocketTypeEmpty == sockfd)
+    if (g_SocketTypeEmpty == fd)
         return g_SocketTypeEmpty;
 
     if (flags & static_cast<int>(SockFlags::NonBlocking))
     {
         u_long mode = 1;
-        ::ioctlsocket(sockfd, FIONBIO, &mode);
+        ::ioctlsocket(fd, FIONBIO, &mode);
     }
 
-    return sockfd;
+    return fd;
 }
 inline bool connect(SocketType sockfd, const sockaddr& addr) { return 0 == ::connect(sockfd, sockaddr_cast<const sockaddr, const ::sockaddr>(&addr), sizeof(addr)); }
 inline int send(SocketType sockfd, const char* buf, size_t count) { return ::send(sockfd, buf, count, 0); }
