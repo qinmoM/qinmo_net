@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string.h>
+#include <ctime>
+#include <chrono>
 
 #if defined(__linux__)
 
@@ -34,6 +36,12 @@ inline ssize_t read(int fd, void* ptr, size_t count) { return ::read(fd, ptr, co
 inline ssize_t write(int fd, const void* ptr, size_t count) { return ::write(fd, ptr, count); }
 
 /*
+                time
+*/
+inline bool localtime(const time_t& time, std::tm& tm) { return nullptr != ::localtime_r(&time, &tm); }
+inline bool gmtime(const time_t& time, std::tm& tm) { return nullptr != ::gmtime_r(&time, &tm); }
+
+/*
                 eventfd
 */
 inline int eventfd(unsigned int initval, int flags) { return ::eventfd(initval, flags); }
@@ -53,6 +61,12 @@ inline int timerfd_create(int clockid, int flags) { return ::timerfd_create(cloc
 inline int timerfd_settime(int fd, int flags, const itimerspec* newVal, itimerspec* oldVal) { return ::timerfd_settime(fd, flags, newVal, oldVal); }
 
 #elif defined(_WIN32)
+
+/*
+                time
+*/
+inline bool localtime(const time_t& time, std::tm& tm) { return 0 == ::localtime_s(&tm, &time); }
+inline bool gmtime(const time_t& time, std::tm& tm) { return 0 == ::gmtime_s(&tm, &time); }
 
 /*
                 thread ID in system call
