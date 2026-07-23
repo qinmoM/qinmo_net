@@ -65,7 +65,7 @@ public:
     bool listen(int num = 128);
     /// @return a new SocketTCP object
     /// @note must check whether InetAddr and SocketTCP is invalid
-    SocketTCP accept(InetAddr& addr, int flags = 0);
+    SocketTCP accept(InetAddr& addr, SockFlags flags = SockFlags::None);
     /// @brief equal to accept(addr, SockFlags::NonBlocking | SockFlags::CloseOnExec)
     SocketTCP acceptNonBlockOrDie(InetAddr& addr);
     /// @brief connect server
