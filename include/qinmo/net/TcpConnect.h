@@ -22,8 +22,8 @@ public:
     /// @param serverAddr remote server address
     /// @return using the move constructor
     /// @note better to check whether the returned value is valid : Call isValid()
-    static TcpConnect connectRaw(const InetAddr& serverAddr, int flags = 0);
-    /// @brief equal to connectRaw(InetAddr(), SOCK_NONBLOCK | SOCK_CLOEXEC)
+    static TcpConnect connectRaw(const InetAddr& serverAddr, SockFlags flags = SockFlags::None);
+    /// @brief equal to connectRaw(InetAddr(), SockFlags::NonBlocking | SockFlags::CloseOnExec)
     /// @note better to check whether the returned value is valid: call isValid()
     static TcpConnect connectNonBlockOrDie(const InetAddr& serverAddr);
 
