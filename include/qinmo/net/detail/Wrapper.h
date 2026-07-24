@@ -63,7 +63,7 @@ constexpr SocketType g_SocketTypeEmpty = INVALID_SOCKET;
 enum class SockFlags : int
 {
     None = 0,
-    NonBlocking = 1,
+    NonBlocking = 00004000,
     CloseOnExec = None
 };
 
