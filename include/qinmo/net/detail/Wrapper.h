@@ -228,7 +228,7 @@ inline ssize_t recv(SocketType sockfd, void* buf, size_t count) { return ::recv(
 inline ssize_t sendto(SocketType sockfd, const void* buf, size_t count, const sockaddr& addr) { return ::sendto(sockfd, buf, count, 0, sockaddr_cast<const sockaddr, const ::sockaddr>(&addr), sizeof(sockaddr)); }
 inline ssize_t recvfrom(SocketType sockfd, void* buf, size_t count, sockaddr& addr) { unsigned int len = sizeof(addr); return ::recvfrom(sockfd, buf, count, 0, sockaddr_cast<sockaddr, ::sockaddr>(&addr), &len); }
 inline bool shutdownWrite(SocketType sockfd) { return 0 == ::shutdown(sockfd, SHUT_WR); }
-inline int close(SocketType sockfd) { return qinmo::detail::close(fd); }
+inline int close(SocketType sockfd) { return qinmo::detail::close(sockfd); }
 
 inline bool isAddrReuse(SocketType sockfd) { int opt = 0; socklen_t len = sizeof(opt); return 0 == ::getsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, &len) && 1 == opt; }
 

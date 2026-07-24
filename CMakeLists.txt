@@ -34,6 +34,7 @@ if (UNIX)
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ThreadConfig.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/Timer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/TimerManager.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Timestamp.cpp
     )
 elseif (WIN32)
     add_library(qinmo_net

@@ -6,7 +6,7 @@
  *      Low-level                : SocketTCP & SocketUDP
  *      Common non-net utilities : println, StringView, Logger ...
  * 
- * @version 3.1.1
+ * @version 3.1.2
  * @author qinmoM
  * @github https://github.com/qinmoM/qinmo_net
  */
@@ -16,6 +16,7 @@
 
 #if defined(__linux__)
 
+#include <qinmo/base/Logger.h>
 #include <qinmo/net/ReactorTcpServer.h>
 #include <qinmo/net/EventLoop.h>
 namespace qinmo::net
@@ -28,12 +29,10 @@ using TcpServer = ReactorTcpServer;
 
 #include <qinmo/net/TcpListen.h>
 #include <qinmo/net/SocketUDP.h>
+#include <qinmo/base/Logger.h>
 
 #else
 
 #error "Platform not supported"
 
 #endif
-
-
-#include <qinmo/base/Logger.h>
