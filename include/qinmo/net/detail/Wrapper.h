@@ -85,6 +85,33 @@ constexpr SockFlags operator|=(SockFlags& a, const SockFlags& b)
 namespace detail
 {
 
+class NetInitiator
+{
+public:
+    static void instance()
+    {
+#if defined(_WIN32)
+        static NetInitiator initiator;
+    }
+private:
+
+    NetInitiator()
+    {
+        WSADATA data;
+        if (0 != WSAStartup(MAKEWORD(2, 2), &data))
+        {
+            throw("Failed to call WSAStartup in the Windows mode.");
+            exit(-1);
+        }
+    }
+
+    ~NetInitiator()
+    {
+        WSACleanup();
+#endif
+    }
+};
+
 using sockaddr_in = struct ::sockaddr_in;
 using sockaddr_in6 = struct ::sockaddr_in6;
 union sockaddr
@@ -145,10 +172,11 @@ inline uint64_t hostToNet64(uint64_t host) { return htobe64(host); }
 #elif defined(_WIN32)
 /// @brief network to host byte order, supporting 16-bit, 32-bit and 64-bit unsigned intergers
 /// @param net network order
-inline uint16_t netToHost16(uint16_t net) { return ntohs(net); }
-inline uint32_t netToHost32(uint32_t net) { return ntohl(net); }
+inline uint16_t netToHost16(uint16_t net) { NetInitiator::instance(); return ntohs(net); }
+inline uint32_t netToHost32(uint32_t net) { NetInitiator::instance(); return ntohl(net); }
 inline uint64_t netToHost64(uint64_t net)
 {
+    NetInitiator::instance();
     constexpr uint16_t test = 0x0001;
     const uint8_t temp = *(static_cast<const uint8_t*>(static_cast<const void*>(&test)));
 
@@ -162,9 +190,9 @@ inline uint64_t netToHost64(uint64_t net)
 
 /// @brief host to network byte order, supporting 16-bit, 32-bit and 64-bit unsigned intergers
 /// @param host host order
-inline uint16_t hostToNet16(uint16_t host) { return htons(host); }
-inline uint32_t hostToNet32(uint32_t host) { return htonl(host); }
-inline uint64_t hostToNet64(uint64_t host) { return netToHost64(host); }
+inline uint16_t hostToNet16(uint16_t host) { NetInitiator::instance(); return htons(host); }
+inline uint32_t hostToNet32(uint32_t host) { NetInitiator::instance(); return htonl(host); }
+inline uint64_t hostToNet64(uint64_t host) { NetInitiator::instance(); return netToHost64(host); }
 #endif
 
 
@@ -177,13 +205,13 @@ inline void zeroMemory(void* buf, size_t len) { ::memset(buf, 0, len); }
 /// @param cp dotted decimal string
 /// @param addr net address
 /// @return return true when successful, otherwise false
-inline bool pton4(StringView cp, in_addr& addr) { return 1 == ::inet_pton(AF_INET, cp.data(), &addr); }
-inline bool pton6(StringView cp, in6_addr& addr) { return 1 == ::inet_pton(AF_INET6, cp.data(), &addr); }
+inline bool pton4(StringView cp, in_addr& addr) { NetInitiator::instance(); return 1 == ::inet_pton(AF_INET, cp.data(), &addr); }
+inline bool pton6(StringView cp, in6_addr& addr) { NetInitiator::instance(); return 1 == ::inet_pton(AF_INET6, cp.data(), &addr); }
 /// @brief convert network byte order to dotted decimal
 /// @param addr net address
 /// @return return dotted decimal string
-inline std::string ntop4(const in_addr& addr) { char buf[INET_ADDRSTRLEN]; return ::inet_ntop(AF_INET, &addr, buf, sizeof(buf)); }
-inline std::string ntop6(const in6_addr& addr) { char buf[INET6_ADDRSTRLEN]; return ::inet_ntop(AF_INET6, &addr, buf, sizeof(buf)); }
+inline std::string ntop4(const in_addr& addr) { NetInitiator::instance(); char buf[INET_ADDRSTRLEN]; return ::inet_ntop(AF_INET, &addr, buf, sizeof(buf)); }
+inline std::string ntop6(const in6_addr& addr) { NetInitiator::instance(); char buf[INET6_ADDRSTRLEN]; return ::inet_ntop(AF_INET6, &addr, buf, sizeof(buf)); }
 
 #if defined(__linux__)
 
@@ -214,11 +242,12 @@ inline int getSocketType(SocketType sockfd) { int opt = 0; socklen_t len = sizeo
 
 #elif defined(_WIN32)
 
-inline bool getsockname(SocketType sockfd, sockaddr& addr) { socklen_t len = sizeof(addr); return 0 == ::getsockname(sockfd, sockaddr_cast<sockaddr, ::sockaddr>(&addr), static_cast<int*>(&len)); }
-inline bool getpeername(SocketType sockfd, sockaddr& addr) { socklen_t len = sizeof(addr); return 0 == ::getpeername(sockfd, sockaddr_cast<sockaddr, ::sockaddr>(&addr), static_cast<int*>(&len)); }
+inline bool getsockname(SocketType sockfd, sockaddr& addr) { NetInitiator::instance(); socklen_t len = sizeof(addr); return 0 == ::getsockname(sockfd, sockaddr_cast<sockaddr, ::sockaddr>(&addr), static_cast<int*>(&len)); }
+inline bool getpeername(SocketType sockfd, sockaddr& addr) { NetInitiator::instance(); socklen_t len = sizeof(addr); return 0 == ::getpeername(sockfd, sockaddr_cast<sockaddr, ::sockaddr>(&addr), static_cast<int*>(&len)); }
 
 inline SocketType socket(int af, int type, int protocol = 0)
 {
+    NetInitiator::instance();
     bool isNonBlocking = type & static_cast<int>(SockFlags::NonBlocking);
     type &= ~(static_cast<int>(SockFlags::NonBlocking | SockFlags::CloseOnExec));
     SocketType sockfd = ::socket(af, type, protocol);
@@ -234,10 +263,11 @@ inline SocketType socket(int af, int type, int protocol = 0)
 
     return sockfd;
 }
-inline bool bind(SocketType sockfd, const sockaddr& addr) { return 0 == ::bind(sockfd, sockaddr_cast<const sockaddr, const ::sockaddr>(&addr), sizeof(addr)); }
-inline bool listen(SocketType sockfd, int num = 128){ return 0 == ::listen(sockfd, num); };
+inline bool bind(SocketType sockfd, const sockaddr& addr) { NetInitiator::instance(); return 0 == ::bind(sockfd, sockaddr_cast<const sockaddr, const ::sockaddr>(&addr), sizeof(addr)); }
+inline bool listen(SocketType sockfd, int num = 128){ NetInitiator::instance(); return 0 == ::listen(sockfd, num); };
 inline SocketType accept(SocketType sockfd, sockaddr& addr, int flags = 0)
 {
+    NetInitiator::instance();
     socklen_t len = sizeof(addr);
     SocketType fd = ::accept(sockfd, sockaddr_cast<sockaddr, ::sockaddr>(&addr), &len);
 
@@ -252,24 +282,24 @@ inline SocketType accept(SocketType sockfd, sockaddr& addr, int flags = 0)
 
     return fd;
 }
-inline bool connect(SocketType sockfd, const sockaddr& addr) { return 0 == ::connect(sockfd, sockaddr_cast<const sockaddr, const ::sockaddr>(&addr), sizeof(addr)); }
-inline int send(SocketType sockfd, const char* buf, size_t count) { return ::send(sockfd, buf, count, 0); }
-inline int recv(SocketType sockfd, char* buf, size_t count) { return ::recv(sockfd, buf, count, 0); }
-inline int sendto(SocketType sockfd, const char* buf, size_t count, const sockaddr& addr) { return ::sendto(sockfd, buf, count, 0, sockaddr_cast<const sockaddr, const ::sockaddr>(&addr), sizeof(sockaddr)); }
-inline int recvfrom(SocketType sockfd, char* buf, size_t count, sockaddr& addr) { int len = sizeof(addr); return ::recvfrom(sockfd, buf, count, 0, sockaddr_cast<sockaddr, ::sockaddr>(&addr), &len); }
-inline bool shutdownWrite(SocketType sockfd) { return 0 == ::shutdown(sockfd, SD_SEND); }
-inline int close(SocketType sockfd) { return ::closesocket(sockfd); }
+inline bool connect(SocketType sockfd, const sockaddr& addr) { NetInitiator::instance(); return 0 == ::connect(sockfd, sockaddr_cast<const sockaddr, const ::sockaddr>(&addr), sizeof(addr)); }
+inline int send(SocketType sockfd, const char* buf, size_t count) { NetInitiator::instance(); return ::send(sockfd, buf, count, 0); }
+inline int recv(SocketType sockfd, char* buf, size_t count) { NetInitiator::instance(); return ::recv(sockfd, buf, count, 0); }
+inline int sendto(SocketType sockfd, const char* buf, size_t count, const sockaddr& addr) { NetInitiator::instance(); return ::sendto(sockfd, buf, count, 0, sockaddr_cast<const sockaddr, const ::sockaddr>(&addr), sizeof(sockaddr)); }
+inline int recvfrom(SocketType sockfd, char* buf, size_t count, sockaddr& addr) { NetInitiator::instance(); int len = sizeof(addr); return ::recvfrom(sockfd, buf, count, 0, sockaddr_cast<sockaddr, ::sockaddr>(&addr), &len); }
+inline bool shutdownWrite(SocketType sockfd) { NetInitiator::instance(); return 0 == ::shutdown(sockfd, SD_SEND); }
+inline int close(SocketType sockfd) { NetInitiator::instance(); return ::closesocket(sockfd); }
 
-inline bool isAddrReuse(SocketType sockfd) { int opt = 0; socklen_t len = sizeof(opt); return 0 == ::getsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, static_cast<char*>(static_cast<void*>(&opt)), &len) && 1 == opt; }
+inline bool isAddrReuse(SocketType sockfd) { NetInitiator::instance(); int opt = 0; socklen_t len = sizeof(opt); return 0 == ::getsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, static_cast<char*>(static_cast<void*>(&opt)), &len) && 1 == opt; }
 
-inline int getSockOpt(SocketType sockfd, int level, int optname, void* opt, socklen_t& len) { return ::getsockopt(sockfd, level, optname, static_cast<char*>(opt), &len); }
-inline bool setAddrReuse(SocketType sockfd, bool enable) { int opt = enable ? 1 : 0; return 0 == ::setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, static_cast<char*>(static_cast<void*>(&opt)), sizeof(opt)); }
-inline bool setPortReuse(SocketType sockfd, bool enable) { return false; }
-inline bool setExclusiveAddrUse(SocketType sockfd, bool enable) { int opt = enable ? 1 : 0; return 0 == ::setsockopt(sockfd, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, static_cast<char*>(static_cast<void*>(&opt)), sizeof(opt)); }
-inline bool setTcpNoDelay(SocketType sockfd, bool enable) { int opt = enable ? 1 : 0; return 0 == ::setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, static_cast<char*>(static_cast<void*>(&opt)), sizeof(opt)); }
-inline bool setKeepAlive(SocketType sockfd, bool enable) { int opt = enable ? 1 : 0; return 0 == ::setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, static_cast<char*>(static_cast<void*>(&opt)), sizeof(opt)); }
+inline int getSockOpt(SocketType sockfd, int level, int optname, void* opt, socklen_t& len) { NetInitiator::instance(); return ::getsockopt(sockfd, level, optname, static_cast<char*>(opt), &len); }
+inline bool setAddrReuse(SocketType sockfd, bool enable) { NetInitiator::instance(); int opt = enable ? 1 : 0; return 0 == ::setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, static_cast<char*>(static_cast<void*>(&opt)), sizeof(opt)); }
+inline bool setPortReuse(SocketType sockfd, bool enable) { NetInitiator::instance(); return false; }
+inline bool setExclusiveAddrUse(SocketType sockfd, bool enable) { NetInitiator::instance(); int opt = enable ? 1 : 0; return 0 == ::setsockopt(sockfd, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, static_cast<char*>(static_cast<void*>(&opt)), sizeof(opt)); }
+inline bool setTcpNoDelay(SocketType sockfd, bool enable) { NetInitiator::instance(); int opt = enable ? 1 : 0; return 0 == ::setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, static_cast<char*>(static_cast<void*>(&opt)), sizeof(opt)); }
+inline bool setKeepAlive(SocketType sockfd, bool enable) { NetInitiator::instance(); int opt = enable ? 1 : 0; return 0 == ::setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, static_cast<char*>(static_cast<void*>(&opt)), sizeof(opt)); }
 /// @return 0 if fails
-inline int getSocketType(SocketType sockfd) { int opt = 0; socklen_t len = sizeof(opt); return (0 == ::getsockopt(sockfd, SOL_SOCKET, SO_TYPE, static_cast<char*>(static_cast<void*>(&opt)), &len) ? opt : 0); }
+inline int getSocketType(SocketType sockfd) { NetInitiator::instance(); int opt = 0; socklen_t len = sizeof(opt); return (0 == ::getsockopt(sockfd, SOL_SOCKET, SO_TYPE, static_cast<char*>(static_cast<void*>(&opt)), &len) ? opt : 0); }
 
 #endif
 

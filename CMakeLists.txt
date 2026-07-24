@@ -37,7 +37,6 @@ if (UNIX)
     )
 elseif (WIN32)
     add_library(qinmo_net
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/Wrapper.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/InetAddr.cpp
         # ${CMAKE_CURRENT_SOURCE_DIR}/src/PacketBuffer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/SocketTCP.cpp
@@ -47,7 +46,6 @@ elseif (WIN32)
         ${CMAKE_CURRENT_SOURCE_DIR}/src/Thread.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ThreadConfig.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/Timestamp.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/Wrapper.cpp
     )
 endif()
 
