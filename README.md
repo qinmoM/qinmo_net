@@ -2,7 +2,7 @@
 - This is my net library. Implementation based on C++11 and Reactor model.  
 - Reference [muduo](https://github.com/chenshuo/muduo).  
 ## Tutorials:  
-Simple example:
+Simple example1(Only Linux):
 ```cpp
 #include <qinmo/net.h>
 
@@ -21,6 +21,26 @@ int main()
     loop.loop();
 
     return 0;
+}
+```
+Simple example2(Linux and Windows):  
+```cpp
+#include <qinmo/net.h>
+
+int main()
+{
+    qinmo::net::InetAddr local;
+    // local.setIP(...);
+    // local.setPort(...);
+    qinmo::net::InetAddr peer;
+    // peer.setIP(...);
+    // peer.setPort(...);
+
+    SocketUDP sock = SocketUDP::createRaw(local);
+    if (!sock.isValid())
+        std::exit(-1);
+
+    std::cout << "send bytes:" << sock.sendto("hello", 6, peer) << std::endl;
 }
 ```
 [See details](./example/).  
@@ -52,5 +72,5 @@ target_link_libraries(${PROJECT_NAME}
 )
 ```
 ---  
-> Only supports linux now.  
+> Raws socket are cross-platform, but TcpServer-related supports linux-only.  
 > Welcome to discuss.  
