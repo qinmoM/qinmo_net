@@ -23,7 +23,7 @@ public:
     void stop();
 
     EventLoop* getEventLoop();
-    bool isRetry();
+    bool isRetry() const;
     void setRetry(bool enable);
 
     void setConnectFunc(const ConnectFunc& f);
@@ -32,17 +32,32 @@ public:
     void setWriteCompleteFunc(const WriteCompleteFunc& f);
 
 private:
+    void handleWrite();
+    void handleError();
+
+private:
+    enum class ClientState
+    {
+        kDisconnect,
+        kConnecting,
+        kConnected
+    };
+    static constexpr int kInitRetryDelay = 500;         // ms
+    static constexpr int kMaxRetryDelay = 1000 * 30;    // ms
+
     EventLoop* loop_;
     SocketTCP sock_;
     InetAddr serverAddr_;
-    bool isRetry_;
-    bool isConnecting_;
+    ClientState state_;
+    std::atomic<bool> isRetry_;
+    bool needRestart_;          // used to determine whether restart condition are met.
 
     ConnectFunc connect_;
     DisconnectFunc disconnect_;
     MessageFunc message_;
     WriteCompleteFunc writeComplete_;
 
+    std::unique_ptr<Channel> channel_;
     RTcpConnPtr connection_;
 
 };

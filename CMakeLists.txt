@@ -24,6 +24,7 @@ if (UNIX)
         ${CMAKE_CURRENT_SOURCE_DIR}/src/InetAddr.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/PacketBuffer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/PollerConfig.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ReactorTcpClient.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ReactorTcpConnection.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ReactorTcpServer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/SocketTCP.cpp
