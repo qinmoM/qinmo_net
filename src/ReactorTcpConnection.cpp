@@ -20,6 +20,11 @@ ReactorTcpConnection::ReactorTcpConnection(EventLoop* loop, TcpConnect&& sock, c
     , inputBuffer_(0)
     , outputBuffer_(0)
 {
+    if (!loop_)
+    {
+        QINMO_FATAL("The EventLoop must not be nullptr.");
+        std::exit(-1);
+    }
     channel_.setReadEvent( [this](Timestamp time) -> void { handleRead(time); } );
     channel_.setWriteEvent( [this]() -> void { handleWrite(); } );
     channel_.setCloseEvent( [this]() -> void { handleClose(); } );

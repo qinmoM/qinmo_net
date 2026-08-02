@@ -18,6 +18,11 @@ ReactorTcpServer::ReactorTcpServer(EventLoop* loop, const InetAddr& listenAddr, 
     , numConn_(0)
 {
     QINMO_INFO("ReactorTcpServer create.");
+    if (!loop_)
+    {
+        QINMO_FATAL("EventLoop not be nullptr.");
+        std::exit(-1);
+    }
     if (!sock_.isValid())
     {
         QINMO_FATAL("Failed to create socket with nonblockOrDie.");
