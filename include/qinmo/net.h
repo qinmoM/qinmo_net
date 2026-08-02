@@ -18,11 +18,13 @@
 
 #include <qinmo/base/Logger.h>
 #include <qinmo/net/ReactorTcpServer.h>
+#include <qinmo/net/ReactorTcpClient.h>
 #include <qinmo/net/EventLoop.h>
 namespace qinmo::net
 {
 using TcpConnection = ReactorTcpConnection;
 using TcpServer = ReactorTcpServer;
+using TcpClient = ReactorTcpClient;
 } // namespace qinmo::net
 
 #elif defined(_WIN32)
