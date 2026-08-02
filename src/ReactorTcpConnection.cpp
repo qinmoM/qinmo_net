@@ -9,12 +9,36 @@ namespace qinmo
 namespace net
 {
 
+
+
+// default event function
+namespace detail
+{
+void defaultFuncConn(const RTcpConnPtr&) { }
+void defaultFuncMessage(const RTcpConnPtr& conn, PacketBuffer& input, Timestamp)
+{
+    std::string str;
+    input.retrieveAll(str);
+    QINMO_INFO("Default Message fd = ", conn->getfd(), " receive: ", str);
+}
+void defaultFuncWater(const RTcpConnPtr& conn, std::size_t) { }
+void defaultFuncClose() { }
+} // namespace detail
+
+
+
 ReactorTcpConnection::ReactorTcpConnection(EventLoop* loop, TcpConnect&& sock, const InetAddr& localAddr, const InetAddr& peerAddr)
     : loop_(loop)
     , sock_(std::move(sock))
     , channel_(loop, sock_.getfd())
     , localAddr_(localAddr)
     , peerAddr_(peerAddr)
+    , connectFunc_(detail::defaultFuncConn)
+    , disconnectFunc_(detail::defaultFuncConn)
+    , messageFunc_(detail::defaultFuncMessage)
+    , writeCompleteFunc_(detail::defaultFuncConn)
+    , highWaterMarkFunc_(detail::defaultFuncWater)
+    , closeFunc_(detail::defaultFuncClose)
     , state_(RTcpConnState::Connecting)
     , waterMark_(64 * 1024)
     , inputBuffer_(0)

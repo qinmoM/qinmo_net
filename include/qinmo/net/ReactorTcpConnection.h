@@ -39,6 +39,17 @@ using CloseFunc = std::function<void()>;
 
 
 
+// default event function
+namespace detail
+{
+void defaultFuncConn(const RTcpConnPtr& conn);
+void defaultFuncMessage(const RTcpConnPtr& conn, PacketBuffer& input, Timestamp);
+void defaultFuncWater(const RTcpConnPtr& conn, std::size_t);
+void defaultFuncClose();
+} // namespace detail
+
+
+
 class ReactorTcpConnection
     // Inherit this template class  when  needing to create shared_ptr via 'this' pointer inside the class
     : public std::enable_shared_from_this<ReactorTcpConnection>
