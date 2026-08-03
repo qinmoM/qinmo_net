@@ -231,6 +231,20 @@ inline bool shutdownWrite(SocketType sockfd) { return 0 == ::shutdown(sockfd, SH
 inline int close(SocketType sockfd) { return qinmo::detail::close(sockfd); }
 
 inline bool isAddrReuse(SocketType sockfd) { int opt = 0; socklen_t len = sizeof(opt); return 0 == ::getsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, &len) && 1 == opt; }
+inline int getSocketError(SocketType sockfd) { int opt = 0; socklen_t len = sizeof(opt); return (::getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &opt, &len) < 0 ? errno : opt); }
+inline bool isConnectSelf(SocketType sockfd)
+{
+    sockaddr peer;
+    sockaddr local;
+    if (!getpeername(sockfd, peer) || !getsockname(sockfd, local))
+        return false;
+    if (AF_INET == local.addr4_.sin_family)
+        return peer.addr4_.sin_port == local.addr4_.sin_port && peer.addr4_.sin_addr.s_addr == local.addr4_.sin_addr.s_addr;
+    else if (AF_INET6 == local.addr6_.sin6_family)
+        return peer.addr6_.sin6_port == local.addr6_.sin6_port && peer.addr6_.sin6_scope_id == local.addr6_.sin6_scope_id && 0 == memcmp(&peer.addr6_.sin6_addr, &local.addr6_.sin6_addr, sizeof(local.addr6_.sin6_addr));
+    else
+        throw "Unknow socket family.";
+}
 
 inline int getSockOpt(SocketType sockfd, int level, int optname, void* opt, socklen_t& len) { return ::getsockopt(sockfd, level, optname, opt, &len); }
 inline bool setAddrReuse(SocketType sockfd, bool enable) { int opt = enable ? 1 : 0; return 0 == ::setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)); }
