@@ -35,6 +35,9 @@ private:
     void handleWrite();
     void handleError();
 
+    void newConnect();
+    void removeConnect();
+
 private:
     enum class ClientState
     {
@@ -50,12 +53,13 @@ private:
     InetAddr serverAddr_;
     ClientState state_;
     std::atomic<bool> isRetry_;
-    bool needRestart_;          // used to determine whether restart condition are met.
+    std::atomic<bool> needStart_;   // used to determine whether restart condition are met or client need to connect.
+    std::mutex mutex_;
 
-    ConnectFunc connect_;
-    DisconnectFunc disconnect_;
-    MessageFunc message_;
-    WriteCompleteFunc writeComplete_;
+    ConnectFunc connectFunc_;
+    DisconnectFunc disconnectFunc_;
+    MessageFunc messageFunc_;
+    WriteCompleteFunc writeCompleteFunc_;
 
     std::unique_ptr<Channel> channel_;
     RTcpConnPtr connection_;
