@@ -10,7 +10,11 @@ ReactorTcpClient::ReactorTcpClient(EventLoop* loop, const InetAddr& serverAddr)
     , serverAddr_(serverAddr)
     , state_(ClientState::kDisconnect)
     , isRetry_(false)
-    , needRestart_(true)
+    , needStart_(true)
+    , connectFunc_(detail::defaultFuncConn)
+    , disconnectFunc_(detail::defaultFuncConn)
+    , messageFunc_(detail::defaultFuncMessage)
+    , writeCompleteFunc_(detail::defaultFuncConn)
     , channel_(nullptr)
 {
     QINMO_INFO("ReactorTcpClient create.");
@@ -27,11 +31,11 @@ void ReactorTcpClient::connect()
 {
     QINMO_INFO("Client begin connecting. serverIP: ", serverAddr_.getIP());
 
-    needRestart_ = true;
+    needStart_.store(true);
     loop_->runInLoop(
         [this]()
         {
-            if (!needRestart_)
+            if (!needStart_.load())
             {
                 QINMO_DEBUG("Restart condtion is not met.");
                 return;
@@ -87,12 +91,12 @@ void ReactorTcpClient::connect()
 
 void ReactorTcpClient::disconnect()
 {
-    needRestart_ = false;
+    needStart_.store(false);
 }
 
 void ReactorTcpClient::stop()
 {
-    needRestart_ = false;
+    needStart_.store(false);
 }
 
 
@@ -116,29 +120,110 @@ void ReactorTcpClient::setRetry(bool enable)
 
 void ReactorTcpClient::setConnectFunc(const ConnectFunc& f)
 {
-    connect_ = f;
+    connectFunc_ = f;
 }
 
 void ReactorTcpClient::setDisconnectFunc(const DisconnectFunc& f)
 {
-    disconnect_ = f;
+    disconnectFunc_ = f;
 }
 
 void ReactorTcpClient::setMessageFunc(const MessageFunc& f)
 {
-    message_ = f;
+    messageFunc_ = f;
 }
 
 void ReactorTcpClient::setWriteCompleteFunc(const WriteCompleteFunc& f)
 {
-    writeComplete_ = f;
+    writeCompleteFunc_ = f;
+}
+
+
+
+void ReactorTcpClient::newConnect()
+{
+    SocketTCP sock = SocketTCP::attach(sock_.getfd());
+    if (!sock.isValid())
+    {
+        QINMO_ERROR("Failed to attach - connect invalid. cfd=", sock.getfd());
+        return;
+    }
+
+    InetAddr local = sock_.getLocalAddr();
+    InetAddr peer = sock_.getPeerAddr();
+    if (!peer.isValid())
+        QINMO_ERROR("Failed to get address. local: ip = ", local.getIP(), " port = ", local.getPort(), "; peer: ip = ", peer.getIP(), " port = ", peer.getPort());
+
+    RTcpConnPtr conn =
+        std::make_shared<ReactorTcpConnection>(
+            loop_,
+            std::move(sock),
+            local,
+            peer
+        );
+    conn->setConnectFunc(connectFunc_);
+    conn->setDisconnectFunc(disconnectFunc_);
+    conn->setMessageFunc(messageFunc_);
+    conn->setWriteCompleteFunc(writeCompleteFunc_);
+    conn->setCloseFunc( [this]() -> void { removeConnect(); } );
+
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        connection_ = conn;
+    }
+    conn->connectEstablished();
+}
+
+void ReactorTcpClient::removeConnect()
+{
+    RTcpConnPtr conn;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        conn = connection_;
+        connection_.reset();
+    }
+
+    loop_->queueInLoop( [this, conn]() -> void { conn->connectDestroyed(); } );
+    if (isRetry() && needStart_.load())
+    {
+        ;
+    }
 }
 
 
 
 void ReactorTcpClient::handleWrite()
 {
-    ;
+    if (ClientState::kConnecting != state_)
+    {
+        QINMO_FATAL("Write event triggered when kConnecting. fd = ", sock_.getfd());
+        std::exit(-1);
+    }
+
+    int error = detail::getSocketError(sock_.getfd());
+    if (error)
+    {
+        QINMO_WARN("Connect error. fd = ", sock_.getfd(), " errorCode = ", error);
+        // retry
+        return;
+    }
+    else if (detail::isConnectSelf(sock_.getfd()))
+    {
+        QINMO_WARN("Connect connect-self. fd = ", sock_.getfd());
+        // retry
+        return;
+    }
+
+    if (!needStart_.load())
+    {
+        state_ = ClientState::kDisconnect;
+        sock_.close();
+    }
+    else
+    {
+        state_ = ClientState::kConnected;
+
+    }
 }
 
 void ReactorTcpClient::handleError()
