@@ -20,23 +20,24 @@ namespace net
 class SocketTCP
 {
 public:
-    /// @brief create a new socket
-    /// @return using the move constructor
+    /// @brief create a new socket, will be closed upon release
+    /// @param addr only use protocol, you must re-bind() after created
     /// @note better to check whether the returned value is valid : Call function isValid()
-    /// @note the addr only use protocol, you must bind after created
-    /// @note has no  SockFlags::CloseOnExec  in the windows
+    /// @note has no  SockFlags::CloseOnExec  in the Windows Platform
     static SocketTCP createRaw(const InetAddr& addr, SockFlags flags = SockFlags::None);
     /// @brief equal to createRaw(InetAddr(), SockFlags::NonBlocking | SockFlags::CloseOnExec)
-    /// @note better to check whether the returned value is valid: call isValid()
     static SocketTCP createNonBlockOrDie(const InetAddr& addr);
-    /// @brief attach an existing socket
+    /// @brief attach an existing socket, will be closed upon release
     /// @param fd file descriptor
-    /// @return using the move constructor
     /// @note must check whether the returned value is valid : Call function isValid()
     static SocketTCP attach(const SocketType fd);
+    /// @brief create a view, won't be closed upon release, and close() cannot be call
+    /// @param fd file descriptor
+    /// @note must check whether the returned value is valid : Call function isValid()
+    static SocketTCP borrow(const SocketType fd);
 
 public:
-    SocketTCP();
+    explicit SocketTCP();
     ~SocketTCP();
 
     SocketTCP(const SocketTCP&) = delete;
@@ -48,6 +49,8 @@ public:
 public:
     /// @return return true if has been initialized
     bool isValid() const;
+    /// @return return true if will be closed upon release
+    bool isOwns() const;
     /// @brief get current file descriptor
     SocketType getfd() const;
     /// @brief get local address
@@ -86,10 +89,11 @@ public:
     bool setKeepAlive(bool enable);
 
 private:
-    SocketTCP(SocketType fd);
+    SocketTCP(SocketType fd, bool owns);
 
 private:
     SocketType sockfd_ = g_SocketTypeEmpty;
+    bool owns_ = false;
 
 };
 
