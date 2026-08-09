@@ -19,7 +19,7 @@ SocketTCP SocketTCP::createNonBlockOrDie(const InetAddr& addr)
 SocketTCP SocketTCP::attach(const SocketType fd)
 {
     if (SOCK_STREAM != detail::getSocketType(fd))
-        return SocketTCP(g_SocketTypeEmpty, false);
+        return SocketTCP();
 
     return SocketTCP(fd, true);
 }
@@ -27,7 +27,7 @@ SocketTCP SocketTCP::attach(const SocketType fd)
 SocketTCP SocketTCP::borrow(const SocketType fd)
 {
     if (SOCK_STREAM != detail::getSocketType(fd))
-        return SocketTCP(g_SocketTypeEmpty, false);
+        return SocketTCP();
 
     return SocketTCP(fd, false);
 }
@@ -104,6 +104,8 @@ InetAddr SocketTCP::getPeerAddr() const
     return InetAddr(addr);
 }
 
+
+
 ssize_t  SocketTCP::recv(char* buf, size_t len)
 {
     return detail::recv(sockfd_, buf, len);
@@ -166,8 +168,11 @@ bool SocketTCP::close()
         return false;
 
     sockfd_ = g_SocketTypeEmpty;
+    owns_ = false;
     return true;
 }
+
+
 
 bool SocketTCP::setTcpNoDelay(bool enable)
 {

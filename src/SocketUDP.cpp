@@ -8,7 +8,7 @@ SocketUDP SocketUDP::createRaw(const InetAddr& addr, SockFlags flags)
     if (!addr.isValid())
         return SocketUDP();
 
-    return SocketUDP(detail::socket((addr.isIPv4() ? AF_INET : AF_INET6), SOCK_DGRAM | static_cast<int>(flags)));
+    return SocketUDP(detail::socket((addr.isIPv4() ? AF_INET : AF_INET6), SOCK_DGRAM | static_cast<int>(flags)), true);
 }
 
 SocketUDP SocketUDP::createNonBlockOrDie(const InetAddr& addr)
@@ -21,14 +21,24 @@ SocketUDP SocketUDP::attach(const SocketType fd)
     if (SOCK_DGRAM != detail::getSocketType(fd))
         return SocketUDP();
 
-    return SocketUDP(fd);
+    return SocketUDP(fd, true);
 }
+
+SocketUDP SocketUDP::borrow(const SocketType fd)
+{
+    if (SOCK_DGRAM != detail::getSocketType(fd))
+        return SocketUDP();
+
+    return SocketUDP(fd, false);
+}
+
 
 
 SocketUDP::SocketUDP() { }
 
-SocketUDP::SocketUDP(SocketType fd)
+SocketUDP::SocketUDP(SocketType fd, bool owns)
     : sockfd_(fd)
+    , owns_(owns)
 { }
 
 SocketUDP::~SocketUDP()
@@ -36,28 +46,41 @@ SocketUDP::~SocketUDP()
     close();
 }
 
-
 SocketUDP::SocketUDP(SocketUDP&& other) noexcept
 {
+    close();
+
     sockfd_ = other.sockfd_;
-    other.sockfd_ = g_SocketTypeEmpty;
     state_ = other.state_;
+    owns_ = other.owns_;
+    other.sockfd_ = g_SocketTypeEmpty;
     other.state_ = 0;
+    other.owns_ = false;
 }
 
 SocketUDP& SocketUDP::operator=(SocketUDP&& other) noexcept
 {
+    close();
+
     sockfd_ = other.sockfd_;
-    other.sockfd_ = g_SocketTypeEmpty;
     state_ = other.state_;
+    owns_ = other.owns_;
+    other.sockfd_ = g_SocketTypeEmpty;
     other.state_ = 0;
+    other.owns_ = false;
     return *this;
 }
+
 
 
 bool SocketUDP::isValid() const
 {
     return g_SocketTypeEmpty != sockfd_;
+}
+
+bool SocketUDP::isOwns() const
+{
+    return owns_;
 }
 
 SocketType SocketUDP::getfd() const
@@ -100,6 +123,7 @@ InetAddr SocketUDP::getPeerAddr() const
 
     return InetAddr(addr);
 }
+
 
 
 ssize_t SocketUDP::recvfrom(char* buf, size_t len, InetAddr& peer)
@@ -155,12 +179,15 @@ ssize_t SocketUDP::send(const char* buf, size_t len)
 
 bool SocketUDP::close()
 {
-    if (!isValid() || -1 == qinmo::net::detail::close(sockfd_))
+    if (!isOwns() || !isValid() || -1 == qinmo::net::detail::close(sockfd_))
         return false;
 
     sockfd_ = g_SocketTypeEmpty;
+    state_ = 0;
+    owns_ = false;
     return true;
 }
+
 
 
 bool SocketUDP::setReusePort(bool enable)
