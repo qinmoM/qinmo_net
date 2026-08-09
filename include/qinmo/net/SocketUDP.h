@@ -18,23 +18,24 @@ namespace net
 class SocketUDP
 {
 public:
-    /// @brief create a new socket
-    /// @return using the move constructor
+    /// @brief create a new socket, will be closed upon release
+    /// @param addr only use protocol, you must re-bind() after created
     /// @note better to check whether the returned value is valid : Call function isValid()
-    /// @note the addr only use protocol, you must bind after created
-    /// @note has no  SockFlags::CloseOnExec  in the windows
+    /// @note has no  SockFlags::CloseOnExec  in the Windows Platform
     static SocketUDP createRaw(const InetAddr& addr, SockFlags flags = SockFlags::None);
     /// @brief equal to createRaw(InetAddr(), SockFlags::NonBlocking | SockFlags::CloseOnExec)
-    /// @note better to check whether the returned value is valid: call isValid()
     static SocketUDP createNonBlockOrDie(const InetAddr& addr);
-    /// @brief attach an existing socket
+    /// @brief attach an existing socket, will be closed upon release
     /// @param fd file descriptor
-    /// @return using the move constructor
     /// @note must check whether the returned value is valid : Call function isValid()
     static SocketUDP attach(const SocketType fd);
+    /// @brief create a view, won't be closed upon release, and close() cannot be call
+    /// @param fd file descriptor
+    /// @note must check whether the returned value is valid : Call function isValid()
+    static SocketUDP borrow(const SocketType fd);
 
 public:
-    SocketUDP();
+    explicit SocketUDP();
     ~SocketUDP();
 
     SocketUDP(const SocketUDP&) = delete;
@@ -46,6 +47,8 @@ public:
 public:
     /// @return return true if has been initialized
     bool isValid() const;
+    /// @return return true if will be closed upon release
+    bool isOwns() const;
     /// @brief get current file descriptor
     SocketType getfd() const;
     /// @brief return true if has been bind local address
@@ -79,7 +82,7 @@ public:
     bool setReuseAddr(bool enable);
 
 private:
-    SocketUDP(SocketType fd);
+    SocketUDP(SocketType fd, bool owns);
 
 private:
     static constexpr uint8_t IsBind = 1;
@@ -87,6 +90,7 @@ private:
 
     SocketType sockfd_ = g_SocketTypeEmpty;
     uint8_t state_ = 0;
+    bool owns_ = false;
 
 };
 
