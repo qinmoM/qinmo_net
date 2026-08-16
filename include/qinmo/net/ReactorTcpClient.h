@@ -35,9 +35,9 @@ private:
     void handleWrite();
     void handleError();
 
+    void removeChannel();
     void start();
     void retry();
-    void removeChannel();
     void newConnect();
     void removeConnect();
 
@@ -48,8 +48,8 @@ private:
         kConnecting,
         kConnected
     };
-    static constexpr int kInitRetryDelay = 500;         // ms
-    static constexpr int kMaxRetryDelay = 1000 * 30;    // ms
+    static constexpr int kInitRetryMs = 500;        // ms
+    static constexpr int kMaxRetryMs = 1000 * 30;   // ms
 
     EventLoop* loop_;
     SocketTCP sock_;
@@ -58,6 +58,7 @@ private:
     std::atomic<bool> isRetry_;
     std::atomic<bool> needStart_;   // used to determine whether restart condition are met or client need to connect.
     std::mutex mutex_;
+    int retryMs_;
 
     ConnectFunc connectFunc_;
     DisconnectFunc disconnectFunc_;

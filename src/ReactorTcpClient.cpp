@@ -32,61 +32,7 @@ void ReactorTcpClient::connect()
     QINMO_INFO("Client begin connecting. serverIP: ", serverAddr_.getIP());
 
     needStart_.store(true);
-    loop_->runInLoop(
-        [this]()
-        {
-            if (!needStart_.load())
-            {
-                QINMO_DEBUG("Start condition is not met.");
-                return;
-            }
-
-            sock_ = SocketTCP::createNonBlockOrDie(serverAddr_);
-            int saveError = 0;
-            if (!sock_.connect(serverAddr_))
-                saveError = errno;
-
-            switch(saveError)
-            {
-                case 0:
-                case EINPROGRESS:
-                case EINTR:
-                case EISCONN:
-                {
-                    state_ = ClientState::kConnecting;
-                    channel_.reset(new Channel(loop_, sock_.getfd()));
-                    channel_->setWriteEvent([this]() { handleWrite(); });
-                    channel_->setErrorEvent([this]() { handleError(); });
-                    channel_->enableWrite();
-                    break;
-                }
-
-                case EAGAIN:
-                case EADDRINUSE:
-                case EADDRNOTAVAIL:
-                case ECONNREFUSED:
-                case ENETUNREACH:
-            //   retry(sockfd);
-                    break;
-
-                case EACCES:
-                case EPERM:
-                case EAFNOSUPPORT:
-                case EALREADY:
-                case EBADF:
-                case EFAULT:
-                case ENOTSOCK:
-                    QINMO_ERROR("connect error.");
-                    sock_.close();
-                    break;
-
-                default:
-                    QINMO_ERROR("Unexpected error.");
-                    sock_.close();
-                    break;
-            }
-        }
-    );
+    loop_->runInLoop( [this]() { start(); } );
 }
 
 void ReactorTcpClient::disconnect()
@@ -145,6 +91,81 @@ void ReactorTcpClient::removeChannel()
     channel_->disableAll();
     channel_->remove();
     loop_->queueInLoop( [this]() -> void { channel_.reset(); } );
+}
+
+void ReactorTcpClient::start()
+{
+    if (!needStart_.load())
+    {
+        QINMO_DEBUG("Start condition is not met.");
+        return;
+    }
+
+    sock_ = SocketTCP::createNonBlockOrDie(serverAddr_);
+    int saveError = 0;
+    if (!sock_.connect(serverAddr_))
+        saveError = errno;
+
+    switch(saveError)
+    {
+        case 0:
+        case EINPROGRESS:
+        case EINTR:
+        case EISCONN:
+        {
+            state_ = ClientState::kConnecting;
+            channel_.reset(new Channel(loop_, sock_.getfd()));
+            channel_->setWriteEvent([this]() { handleWrite(); });
+            channel_->setErrorEvent([this]() { handleError(); });
+            channel_->enableWrite();
+            break;
+        }
+
+        case EAGAIN:
+        case EADDRINUSE:
+        case EADDRNOTAVAIL:
+        case ECONNREFUSED:
+        case ENETUNREACH:
+        {
+            retry();
+            break;
+        }
+
+        case EACCES:
+        case EPERM:
+        case EAFNOSUPPORT:
+        case EALREADY:
+        case EBADF:
+        case EFAULT:
+        case ENOTSOCK:
+        {
+            QINMO_ERROR("connect error.");
+            sock_.close();
+            break;
+        }
+
+        default:
+        {
+            QINMO_ERROR("Unexpected error.");
+            sock_.close();
+            break;
+        }
+    }
+}
+
+void ReactorTcpClient::retry()
+{
+    state_ = ClientState::kDisconnect;
+    sock_.close();
+    if (isRetry_ && needStart_)
+    {
+        loop_->timerAfter(retryMs_ / 1000, [this]() -> void { start(); } );
+        retryMs_ = std::min(retryMs_ * 2, kMaxRetryMs);
+    }
+    else
+    {
+        QINMO_DEBUG("Do not call retry.");
+    }
 }
 
 void ReactorTcpClient::newConnect()
