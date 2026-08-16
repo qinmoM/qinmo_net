@@ -8,7 +8,7 @@ SocketTCP SocketTCP::createRaw(const InetAddr& addr, SockFlags flags)
     if (!addr.isValid())
         return SocketTCP();
 
-    return SocketTCP(detail::socket((addr.isIPv4() ? AF_INET : AF_INET6), SOCK_STREAM | static_cast<int>(flags)));
+    return SocketTCP(detail::socket((addr.isIPv4() ? AF_INET : AF_INET6), SOCK_STREAM | static_cast<int>(flags)), true);
 }
 
 SocketTCP SocketTCP::createNonBlockOrDie(const InetAddr& addr)
@@ -19,15 +19,26 @@ SocketTCP SocketTCP::createNonBlockOrDie(const InetAddr& addr)
 SocketTCP SocketTCP::attach(const SocketType fd)
 {
     if (SOCK_STREAM != detail::getSocketType(fd))
-        return SocketTCP(g_SocketTypeEmpty);
+        return SocketTCP();
 
-    return SocketTCP(fd);
+    return SocketTCP(fd, true);
 }
+
+SocketTCP SocketTCP::borrow(const SocketType fd)
+{
+    if (SOCK_STREAM != detail::getSocketType(fd))
+        return SocketTCP();
+
+    return SocketTCP(fd, false);
+}
+
+
 
 SocketTCP::SocketTCP() { }
 
-SocketTCP::SocketTCP(SocketType fd)
+SocketTCP::SocketTCP(SocketType fd, bool owns)
     : sockfd_(fd)
+    , owns_(owns)
 { }
 
 SocketTCP::~SocketTCP()
@@ -37,20 +48,35 @@ SocketTCP::~SocketTCP()
 
 SocketTCP::SocketTCP(SocketTCP&& other) noexcept
 {
+    close();
+
     sockfd_ = other.sockfd_;
+    owns_ = other.owns_;
     other.sockfd_ = g_SocketTypeEmpty;
+    other.owns_ = false;
 }
 
 SocketTCP& SocketTCP::operator=(SocketTCP&& other) noexcept
 {
+    close();
+
     sockfd_ = other.sockfd_;
+    owns_ = other.owns_;
     other.sockfd_ = g_SocketTypeEmpty;
+    other.owns_ = false;
     return *this;
 }
+
+
 
 bool SocketTCP::isValid() const
 {
     return g_SocketTypeEmpty != sockfd_;
+}
+
+bool SocketTCP::isOwns() const
+{
+    return owns_;
 }
 
 SocketType SocketTCP::getfd() const
@@ -77,6 +103,8 @@ InetAddr SocketTCP::getPeerAddr() const
 
     return InetAddr(addr);
 }
+
+
 
 ssize_t  SocketTCP::recv(char* buf, size_t len)
 {
@@ -108,7 +136,7 @@ SocketTCP SocketTCP::accept(InetAddr& addr, SockFlags flags)
 {
     detail::sockaddr temp;
     detail::zeroMemory(&temp, sizeof(temp));
-    int sockfd = detail::accept(sockfd_, temp, static_cast<int>(flags));
+    SocketType sockfd = detail::accept(sockfd_, temp, static_cast<int>(flags));
     addr = InetAddr(temp);
     return SocketTCP::attach(sockfd);
 }
@@ -136,12 +164,15 @@ bool SocketTCP::shutdownWrite()
 
 bool SocketTCP::close()
 {
-    if (!isValid() || -1 == qinmo::net::detail::close(sockfd_))
+    if (!isOwns() || !isValid() || -1 == qinmo::net::detail::close(sockfd_))
         return false;
 
     sockfd_ = g_SocketTypeEmpty;
+    owns_ = false;
     return true;
 }
+
+
 
 bool SocketTCP::setTcpNoDelay(bool enable)
 {
