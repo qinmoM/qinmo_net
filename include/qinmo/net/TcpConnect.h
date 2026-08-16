@@ -10,6 +10,9 @@ namespace net
 {
 
 class TcpListen;
+#if defined(__linux__)
+class ReactorTcpClient;
+#endif
 
 /// @brief encapsulate client socket and connect socket
 /// @note you must specify whether to Create a client use server address or Receive from listen socket
@@ -64,6 +67,9 @@ public:
 
 private:
     friend class TcpListen;
+#if defined(__linux__)
+    friend class ReactorTcpClient;
+#endif
 
     TcpConnect(SocketTCP&& sock);
 
