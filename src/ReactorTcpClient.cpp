@@ -37,7 +37,7 @@ void ReactorTcpClient::connect()
         {
             if (!needStart_.load())
             {
-                QINMO_DEBUG("Restart condtion is not met.");
+                QINMO_DEBUG("Start condition is not met.");
                 return;
             }
 
@@ -140,9 +140,16 @@ void ReactorTcpClient::setWriteCompleteFunc(const WriteCompleteFunc& f)
 
 
 
+void ReactorTcpClient::removeChannel()
+{
+    channel_->disableAll();
+    channel_->remove();
+    loop_->queueInLoop( [this]() -> void { channel_.reset(); } );
+}
+
 void ReactorTcpClient::newConnect()
 {
-    SocketTCP sock = SocketTCP::attach(sock_.getfd());
+    TcpConnect sock(std::move(sock_));
     if (!sock.isValid())
     {
         QINMO_ERROR("Failed to attach - connect invalid. cfd=", sock.getfd());
@@ -194,23 +201,23 @@ void ReactorTcpClient::removeConnect()
 
 void ReactorTcpClient::handleWrite()
 {
+    // handleError has been called
     if (ClientState::kConnecting != state_)
-    {
-        QINMO_FATAL("Write event triggered when kConnecting. fd = ", sock_.getfd());
-        std::exit(-1);
-    }
+        return;
 
+    // Tcp connection established
+    removeChannel();
     int error = detail::getSocketError(sock_.getfd());
     if (error)
     {
         QINMO_WARN("Connect error. fd = ", sock_.getfd(), " errorCode = ", error);
-        // retry
+        retry();
         return;
     }
     else if (detail::isConnectSelf(sock_.getfd()))
     {
         QINMO_WARN("Connect connect-self. fd = ", sock_.getfd());
-        // retry
+        retry();
         return;
     }
 
@@ -222,12 +229,21 @@ void ReactorTcpClient::handleWrite()
     else
     {
         state_ = ClientState::kConnected;
-
+        newConnect();
     }
 }
 
 void ReactorTcpClient::handleError()
 {
-    ;
+    QINMO_WARN("handleError has been called.");
+    if (ClientState::kConnecting != state_)
+    {
+        QINMO_FATAL("Nonconnecting state in handleError. state=", (ClientState::kConnected == state_ ? "connected" : "disconnect"));
+        std::exit(-1);
+    }
+
+    removeChannel();
+    state_ = ClientState::kDisconnect;
+    retry();
 }
 } // namespace qinmo::net

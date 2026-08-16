@@ -35,6 +35,9 @@ private:
     void handleWrite();
     void handleError();
 
+    void start();
+    void retry();
+    void removeChannel();
     void newConnect();
     void removeConnect();
 
