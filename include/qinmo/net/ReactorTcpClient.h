@@ -20,6 +20,7 @@ public:
 public:
     void connect();
     void disconnect();
+    /// @note has no effect after connection succeeds
     void stop();
 
     EventLoop* getEventLoop();

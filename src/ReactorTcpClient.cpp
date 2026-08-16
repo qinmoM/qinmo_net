@@ -27,7 +27,7 @@ ReactorTcpClient::~ReactorTcpClient()
 
 
 
-void ReactorTcpClient::connect()
+void ReactorTcpClient::connect() 
 {
     QINMO_INFO("Client begin connecting. serverIP: ", serverAddr_.getIP());
 
@@ -38,11 +38,27 @@ void ReactorTcpClient::connect()
 void ReactorTcpClient::disconnect()
 {
     needStart_.store(false);
+
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (connection_)
+            connection_->shutdown();
+    }
 }
 
 void ReactorTcpClient::stop()
 {
     needStart_.store(false);
+
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (ClientState::kConnecting == state_)
+        {
+            state_ = ClientState::kDisconnect;
+            removeChannel();
+            sock_.close();
+        }
+    }
 }
 
 
@@ -159,6 +175,7 @@ void ReactorTcpClient::retry()
     sock_.close();
     if (isRetry_ && needStart_)
     {
+        QINMO_INFO("Retry to connect ", serverAddr_.getIP(), ":", serverAddr_.getPort(), " in ", retryMs_, " milliseconds.");
         loop_->timerAfter(retryMs_ / 1000, [this]() -> void { start(); } );
         retryMs_ = std::min(retryMs_ * 2, kMaxRetryMs);
     }
@@ -177,8 +194,8 @@ void ReactorTcpClient::newConnect()
         return;
     }
 
-    InetAddr local = sock_.getLocalAddr();
-    InetAddr peer = sock_.getPeerAddr();
+    InetAddr local = sock.getLocalAddr();
+    InetAddr peer = sock.getPeerAddr();
     if (!peer.isValid())
         QINMO_ERROR("Failed to get address. local: ip = ", local.getIP(), " port = ", local.getPort(), "; peer: ip = ", peer.getIP(), " port = ", peer.getPort());
 
@@ -204,6 +221,7 @@ void ReactorTcpClient::newConnect()
 
 void ReactorTcpClient::removeConnect()
 {
+    QINMO_INFO("Client connect being remove.");
     RTcpConnPtr conn;
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -214,7 +232,10 @@ void ReactorTcpClient::removeConnect()
     loop_->queueInLoop( [this, conn]() -> void { conn->connectDestroyed(); } );
     if (isRetry() && needStart_.load())
     {
-        ;
+        QINMO_INFO("Reconnect to ", serverAddr_.getIP(), ':', serverAddr_.getPort(), '.');
+        retryMs_ = kInitRetryMs;
+        state_ = ClientState::kDisconnect;
+        start();
     }
 }
 
