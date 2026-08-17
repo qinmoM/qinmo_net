@@ -55,7 +55,14 @@ void ReactorTcpClientCore::disconnect()
     {
         std::lock_guard<std::mutex> lock(mutex_);
         if (connection_)
-            connection_->shutdown();
+        {
+            std::shared_ptr<ReactorTcpClientCore> self = shared_from_this();
+            loop_->runInLoop( [self]() -> void { self->connection_->shutdown(); } );
+        }
+        else
+        {
+            stopConnecting();
+        }
     }
 }
 
@@ -151,9 +158,23 @@ void ReactorTcpClientCore::start()
         {
             state_ = ClientState::kConnecting;
             channel_.reset(new Channel(loop_, sock_.getfd()));
-            std::shared_ptr<ReactorTcpClientCore> self = shared_from_this();
-            channel_->setWriteEvent([self]() { self->handleWrite(); });
-            channel_->setErrorEvent([self]() { self->handleError(); });
+            std::weak_ptr<ReactorTcpClientCore> weakSelf = shared_from_this();
+            channel_->setWriteEvent(
+                [weakSelf]() -> void
+                {
+                    std::shared_ptr<ReactorTcpClientCore> self = weakSelf.lock();
+                    if (self)
+                        self->handleWrite();
+                }
+            );
+            channel_->setErrorEvent(
+                [weakSelf]() -> void
+                {
+                    std::shared_ptr<ReactorTcpClientCore> self = weakSelf.lock();
+                    if (self)
+                        self->handleError();
+                }
+            );
             channel_->enableWrite();
             break;
         }
@@ -232,8 +253,16 @@ void ReactorTcpClientCore::newConnect()
     conn->setDisconnectFunc(disconnectFunc_);
     conn->setMessageFunc(messageFunc_);
     conn->setWriteCompleteFunc(writeCompleteFunc_);
-    std::shared_ptr<ReactorTcpClientCore> self = shared_from_this();
-    conn->setCloseFunc( [self]() -> void { self->removeConnect(); } );
+    std::weak_ptr<ReactorTcpClientCore> weakSelf = shared_from_this();
+    conn->setCloseFunc(
+        [weakSelf]() -> void
+        {
+            std::shared_ptr<ReactorTcpClientCore> self = weakSelf.lock();
+            QINMO_DEBUG(self.use_count());
+            if (self)
+                self->removeConnect();
+        }
+    );
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
