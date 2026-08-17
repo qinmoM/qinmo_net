@@ -303,8 +303,8 @@ void ReactorTcpClientCore::handleError()
     QINMO_WARN("handleError has been called.");
     if (ClientState::kConnecting != state_)
     {
-        QINMO_FATAL("Nonconnecting state in handleError. state=", (ClientState::kConnected == state_ ? "connected" : "disconnect"));
-        std::exit(-1);
+        QINMO_ERROR("???bug???Nonconnecting state in handleError. state=", (ClientState::kConnected == state_ ? "connected" : "disconnect"));
+        return;
     }
 
     removeChannel();

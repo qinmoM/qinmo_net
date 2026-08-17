@@ -11,7 +11,7 @@ namespace net
 
 class TcpListen;
 #if defined(__linux__)
-class ReactorTcpClient;
+class detail::ReactorTcpClientCore;
 #endif
 
 /// @brief encapsulate client socket and connect socket
@@ -68,7 +68,7 @@ public:
 private:
     friend class TcpListen;
 #if defined(__linux__)
-    friend class ReactorTcpClient;
+    friend class detail::ReactorTcpClientCore;
 #endif
 
     TcpConnect(SocketTCP&& sock);
