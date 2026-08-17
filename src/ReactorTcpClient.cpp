@@ -22,7 +22,17 @@ ReactorTcpClient::ReactorTcpClient(EventLoop* loop, const InetAddr& serverAddr)
 
 ReactorTcpClient::~ReactorTcpClient()
 {
-    ;
+    RTcpConnPtr conn;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        conn = connection_;
+        connection_.reset();
+    }
+
+    if (conn)
+        loop_->queueInLoop( [conn]() { conn->handleClose(); } );
+    else
+        stopConnecting();
 }
 
 
@@ -46,7 +56,7 @@ void ReactorTcpClient::disconnect()
     }
 }
 
-void ReactorTcpClient::stop()
+void ReactorTcpClient::stopConnecting()
 {
     needStart_.store(false);
 
@@ -66,6 +76,12 @@ void ReactorTcpClient::stop()
 EventLoop* ReactorTcpClient::getEventLoop()
 {
     return loop_;
+}
+
+bool ReactorTcpClient::isConnect() const
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    return nullptr != connection_;
 }
 
 bool ReactorTcpClient::isRetry() const

@@ -15,6 +15,7 @@ namespace net
 {
 
 class ReactorTcpConnection;
+class ReactorTcpClient;
 
 
 
@@ -110,6 +111,8 @@ private:
     void handleWrite();
     void handleClose();
     void handleError();
+
+    friend class ReactorTcpClient;
 
 private:
     EventLoop* loop_;
