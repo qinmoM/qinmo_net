@@ -34,6 +34,7 @@ ReactorTcpClientCore::~ReactorTcpClientCore()
     if (conn)
         loop_->queueInLoop( [conn]() { conn->handleClose(); } );
     else
+        // bug!!! removeChannel has shared_from_this()
         stopConnecting();
 }
 
