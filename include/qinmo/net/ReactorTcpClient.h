@@ -4,18 +4,22 @@
 
 namespace qinmo::net
 {
+namespace detail
+{
 
-class ReactorTcpClient
+class ReactorTcpClientCore
+    // Inherit this template class  when  needing to create shared_ptr via 'this' pointer inside the class
+    : public std::enable_shared_from_this<ReactorTcpClientCore>
 {
 public:
-    ReactorTcpClient(EventLoop* loop, const InetAddr& serverAddr);
-    ~ReactorTcpClient();
+    ReactorTcpClientCore(EventLoop* loop, const InetAddr& serverAddr);
+    ~ReactorTcpClientCore();
 
-    ReactorTcpClient(const ReactorTcpClient&) = delete;
-    ReactorTcpClient& operator=(const ReactorTcpClient&) = delete;
+    ReactorTcpClientCore(const ReactorTcpClientCore&) = delete;
+    ReactorTcpClientCore& operator=(const ReactorTcpClientCore&) = delete;
 
-    ReactorTcpClient(ReactorTcpClient&&) = delete;
-    ReactorTcpClient& operator=(ReactorTcpClient&&) = delete;
+    ReactorTcpClientCore(ReactorTcpClientCore&&) = delete;
+    ReactorTcpClientCore& operator=(ReactorTcpClientCore&&) = delete;
 
 public:
     void connect();
@@ -71,4 +75,5 @@ private:
     RTcpConnPtr connection_;
 
 };
+} // namespace detail
 } // namespace qinmo::net

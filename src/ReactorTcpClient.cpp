@@ -4,8 +4,10 @@
 
 namespace qinmo::net
 {
+namespace detail
+{
 
-ReactorTcpClient::ReactorTcpClient(EventLoop* loop, const InetAddr& serverAddr)
+ReactorTcpClientCore::ReactorTcpClientCore(EventLoop* loop, const InetAddr& serverAddr)
     : loop_(loop)
     , serverAddr_(serverAddr)
     , state_(ClientState::kDisconnect)
@@ -17,10 +19,10 @@ ReactorTcpClient::ReactorTcpClient(EventLoop* loop, const InetAddr& serverAddr)
     , writeCompleteFunc_(detail::defaultFuncConn)
     , channel_(nullptr)
 {
-    QINMO_INFO("ReactorTcpClient create.");
+    QINMO_INFO("ReactorTcpClientCore create.");
 }
 
-ReactorTcpClient::~ReactorTcpClient()
+ReactorTcpClientCore::~ReactorTcpClientCore()
 {
     RTcpConnPtr conn;
     {
@@ -37,15 +39,16 @@ ReactorTcpClient::~ReactorTcpClient()
 
 
 
-void ReactorTcpClient::connect() 
+void ReactorTcpClientCore::connect() 
 {
     QINMO_INFO("Client begin connecting. serverIP: ", serverAddr_.getIP());
 
     needStart_.store(true);
-    loop_->runInLoop( [this]() { start(); } );
+    std::shared_ptr<ReactorTcpClientCore> self = shared_from_this();
+    loop_->runInLoop( [self]() { self->start(); } );
 }
 
-void ReactorTcpClient::disconnect()
+void ReactorTcpClientCore::disconnect()
 {
     needStart_.store(false);
 
@@ -56,7 +59,7 @@ void ReactorTcpClient::disconnect()
     }
 }
 
-void ReactorTcpClient::stopConnecting()
+void ReactorTcpClientCore::stopConnecting()
 {
     needStart_.store(false);
 
@@ -73,59 +76,60 @@ void ReactorTcpClient::stopConnecting()
 
 
 
-EventLoop* ReactorTcpClient::getEventLoop()
+EventLoop* ReactorTcpClientCore::getEventLoop()
 {
     return loop_;
 }
 
-bool ReactorTcpClient::isConnect() const
+bool ReactorTcpClientCore::isConnect() const
 {
     std::lock_guard<std::mutex> lock(mutex_);
     return nullptr != connection_;
 }
 
-bool ReactorTcpClient::isRetry() const
+bool ReactorTcpClientCore::isRetry() const
 {
     return isRetry_.load();
 }
 
-void ReactorTcpClient::setRetry(bool enable)
+void ReactorTcpClientCore::setRetry(bool enable)
 {
     isRetry_.store(enable);
 }
 
 
 
-void ReactorTcpClient::setConnectFunc(const ConnectFunc& f)
+void ReactorTcpClientCore::setConnectFunc(const ConnectFunc& f)
 {
     connectFunc_ = f;
 }
 
-void ReactorTcpClient::setDisconnectFunc(const DisconnectFunc& f)
+void ReactorTcpClientCore::setDisconnectFunc(const DisconnectFunc& f)
 {
     disconnectFunc_ = f;
 }
 
-void ReactorTcpClient::setMessageFunc(const MessageFunc& f)
+void ReactorTcpClientCore::setMessageFunc(const MessageFunc& f)
 {
     messageFunc_ = f;
 }
 
-void ReactorTcpClient::setWriteCompleteFunc(const WriteCompleteFunc& f)
+void ReactorTcpClientCore::setWriteCompleteFunc(const WriteCompleteFunc& f)
 {
     writeCompleteFunc_ = f;
 }
 
 
 
-void ReactorTcpClient::removeChannel()
+void ReactorTcpClientCore::removeChannel()
 {
     channel_->disableAll();
     channel_->remove();
-    loop_->queueInLoop( [this]() -> void { channel_.reset(); } );
+    std::shared_ptr<ReactorTcpClientCore> self = shared_from_this();
+    loop_->queueInLoop( [self]() -> void { self->channel_.reset(); } );
 }
 
-void ReactorTcpClient::start()
+void ReactorTcpClientCore::start()
 {
     if (!needStart_.load())
     {
@@ -147,8 +151,9 @@ void ReactorTcpClient::start()
         {
             state_ = ClientState::kConnecting;
             channel_.reset(new Channel(loop_, sock_.getfd()));
-            channel_->setWriteEvent([this]() { handleWrite(); });
-            channel_->setErrorEvent([this]() { handleError(); });
+            std::shared_ptr<ReactorTcpClientCore> self = shared_from_this();
+            channel_->setWriteEvent([self]() { self->handleWrite(); });
+            channel_->setErrorEvent([self]() { self->handleError(); });
             channel_->enableWrite();
             break;
         }
@@ -185,14 +190,15 @@ void ReactorTcpClient::start()
     }
 }
 
-void ReactorTcpClient::retry()
+void ReactorTcpClientCore::retry()
 {
     state_ = ClientState::kDisconnect;
     sock_.close();
     if (isRetry_ && needStart_)
     {
         QINMO_INFO("Retry to connect ", serverAddr_.getIP(), ":", serverAddr_.getPort(), " in ", retryMs_, " milliseconds.");
-        loop_->timerAfter(retryMs_ / 1000, [this]() -> void { start(); } );
+        std::shared_ptr<ReactorTcpClientCore> self = shared_from_this();
+        loop_->timerAfter(retryMs_ / 1000, [self]() -> void { self->start(); } );
         retryMs_ = std::min(retryMs_ * 2, kMaxRetryMs);
     }
     else
@@ -201,7 +207,7 @@ void ReactorTcpClient::retry()
     }
 }
 
-void ReactorTcpClient::newConnect()
+void ReactorTcpClientCore::newConnect()
 {
     TcpConnect sock(std::move(sock_));
     if (!sock.isValid())
@@ -226,7 +232,8 @@ void ReactorTcpClient::newConnect()
     conn->setDisconnectFunc(disconnectFunc_);
     conn->setMessageFunc(messageFunc_);
     conn->setWriteCompleteFunc(writeCompleteFunc_);
-    conn->setCloseFunc( [this]() -> void { removeConnect(); } );
+    std::shared_ptr<ReactorTcpClientCore> self = shared_from_this();
+    conn->setCloseFunc( [self]() -> void { self->removeConnect(); } );
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -235,7 +242,7 @@ void ReactorTcpClient::newConnect()
     conn->connectEstablished();
 }
 
-void ReactorTcpClient::removeConnect()
+void ReactorTcpClientCore::removeConnect()
 {
     QINMO_INFO("Client connect being remove.");
     RTcpConnPtr conn;
@@ -245,7 +252,7 @@ void ReactorTcpClient::removeConnect()
         connection_.reset();
     }
 
-    loop_->queueInLoop( [this, conn]() -> void { conn->connectDestroyed(); } );
+    loop_->queueInLoop( [conn]() -> void { conn->connectDestroyed(); } );
     if (isRetry() && needStart_.load())
     {
         QINMO_INFO("Reconnect to ", serverAddr_.getIP(), ':', serverAddr_.getPort(), '.');
@@ -257,7 +264,7 @@ void ReactorTcpClient::removeConnect()
 
 
 
-void ReactorTcpClient::handleWrite()
+void ReactorTcpClientCore::handleWrite()
 {
     // handleError has been called
     if (ClientState::kConnecting != state_)
@@ -291,7 +298,7 @@ void ReactorTcpClient::handleWrite()
     }
 }
 
-void ReactorTcpClient::handleError()
+void ReactorTcpClientCore::handleError()
 {
     QINMO_WARN("handleError has been called.");
     if (ClientState::kConnecting != state_)
@@ -304,4 +311,7 @@ void ReactorTcpClient::handleError()
     state_ = ClientState::kDisconnect;
     retry();
 }
+} // namespace detail
+
+
 } // namespace qinmo::net
