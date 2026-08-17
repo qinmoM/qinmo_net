@@ -21,9 +21,10 @@ public:
     void connect();
     void disconnect();
     /// @note has no effect after connection succeeds
-    void stop();
+    void stopConnecting();
 
     EventLoop* getEventLoop();
+    bool isConnect() const;
     bool isRetry() const;
     void setRetry(bool enable);
 
@@ -58,7 +59,7 @@ private:
     ClientState state_;
     std::atomic<bool> isRetry_;
     std::atomic<bool> needStart_;   // used to determine whether restart condition are met or client need to connect.
-    std::mutex mutex_;
+    mutable std::mutex mutex_;
     int retryMs_;
 
     ConnectFunc connectFunc_;
