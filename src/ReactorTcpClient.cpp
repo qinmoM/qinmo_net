@@ -4,6 +4,73 @@
 
 namespace qinmo::net
 {
+
+ReactorTcpClient::ReactorTcpClient(EventLoop* loop, const InetAddr& serverAddr)
+    : core_(std::make_shared<detail::ReactorTcpClientCore>(loop, serverAddr))
+{ }
+
+void ReactorTcpClient::connect()
+{
+    return core_->connect();
+}
+
+void ReactorTcpClient::disconnect()
+{
+    return core_->disconnect();
+}
+
+void ReactorTcpClient::stopConnecting()
+{
+    return core_->stopConnecting();
+}
+
+
+
+EventLoop* ReactorTcpClient::getEventLoop()
+{
+    return core_->getEventLoop();
+}
+
+bool ReactorTcpClient::isConnect() const
+{
+    return core_->isConnect();
+}
+
+bool ReactorTcpClient::isRetry() const
+{
+    return core_->isRetry();
+}
+
+void ReactorTcpClient::setRetry(bool enable)
+{
+    return core_->setRetry(enable);
+}
+
+
+
+void ReactorTcpClient::setConnectFunc(const ConnectFunc& f)
+{
+    return core_->setConnectFunc(f);
+}
+
+void ReactorTcpClient::setDisconnectFunc(const DisconnectFunc& f)
+{
+    return core_->setDisconnectFunc(f);
+}
+
+void ReactorTcpClient::setMessageFunc(const MessageFunc& f)
+{
+    return core_->setMessageFunc(f);
+}
+
+void ReactorTcpClient::setWriteCompleteFunc(const WriteCompleteFunc& f)
+{
+    return core_->setWriteCompleteFunc(f);
+}
+
+
+
+
 namespace detail
 {
 
@@ -24,6 +91,7 @@ ReactorTcpClientCore::ReactorTcpClientCore(EventLoop* loop, const InetAddr& serv
 
 ReactorTcpClientCore::~ReactorTcpClientCore()
 {
+    needStart_.store(false);
     RTcpConnPtr conn;
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -43,6 +111,9 @@ ReactorTcpClientCore::~ReactorTcpClientCore()
             loop_->queueInLoop(
                 [channelPtr]() -> void
                 {
+                    if (nullptr == channelPtr)
+                        return;
+
                     channelPtr->disableAll();
                     channelPtr->remove();
                     delete channelPtr;
@@ -66,19 +137,17 @@ void ReactorTcpClientCore::connect()
 void ReactorTcpClientCore::disconnect()
 {
     needStart_.store(false);
+    RTcpConnPtr conn;
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (connection_)
-        {
-            std::shared_ptr<ReactorTcpClientCore> self = shared_from_this();
-            loop_->runInLoop( [self]() -> void { self->connection_->shutdown(); } );
-        }
-        else
-        {
-            stopConnecting();
-        }
+        conn = connection_;
     }
+
+    if (conn)
+        loop_->runInLoop( [conn]() -> void { conn->shutdown(); } );
+    else
+        stopConnecting();
 }
 
 void ReactorTcpClientCore::stopConnecting()
@@ -233,8 +302,16 @@ void ReactorTcpClientCore::retry()
     if (isRetry_ && needStart_)
     {
         QINMO_INFO("Retry to connect ", serverAddr_.getIP(), ":", serverAddr_.getPort(), " in ", retryMs_, " milliseconds.");
-        std::shared_ptr<ReactorTcpClientCore> self = shared_from_this();
-        loop_->timerAfter(retryMs_ / 1000, [self]() -> void { self->start(); } );
+        std::weak_ptr<ReactorTcpClientCore> weakSelf = shared_from_this();
+        loop_->timerAfter(
+            retryMs_ / 1000,
+            [weakSelf]() -> void
+            {
+                std::shared_ptr<ReactorTcpClientCore> self = weakSelf.lock();
+                if (self)
+                    self->start();
+            }
+        );
         retryMs_ = std::min(retryMs_ * 2, kMaxRetryMs);
     }
     else
@@ -356,6 +433,4 @@ void ReactorTcpClientCore::handleError()
     retry();
 }
 } // namespace detail
-
-
 } // namespace qinmo::net

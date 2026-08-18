@@ -4,6 +4,44 @@
 
 namespace qinmo::net
 {
+
+class detail::ReactorTcpClientCore;
+
+
+class ReactorTcpClient
+{
+public:
+    ReactorTcpClient(EventLoop* loop, const InetAddr& serverAddr);
+
+    ReactorTcpClient(const ReactorTcpClient&) = delete;
+    ReactorTcpClient& operator=(const ReactorTcpClient&) = delete;
+
+    ReactorTcpClient(ReactorTcpClient&&) = delete;
+    ReactorTcpClient& operator=(ReactorTcpClient&&) = delete;
+
+public:
+    void connect();
+    void disconnect();
+    /// @note has no effect after connection succeeds
+    void stopConnecting();
+
+    EventLoop* getEventLoop();
+    bool isConnect() const;
+    bool isRetry() const;
+    void setRetry(bool enable);
+
+    void setConnectFunc(const ConnectFunc& f);
+    void setDisconnectFunc(const DisconnectFunc& f);
+    void setMessageFunc(const MessageFunc& f);
+    void setWriteCompleteFunc(const WriteCompleteFunc& f);
+
+private:
+    std::shared_ptr<detail::ReactorTcpClientCore> core_;
+
+};
+
+
+
 namespace detail
 {
 
