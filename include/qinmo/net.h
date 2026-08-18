@@ -6,7 +6,7 @@
  *      Low-level                : SocketTCP & SocketUDP
  *      Common non-net utilities : println, StringView, Logger ...
  * 
- * @version 4.2.0
+ * @version 4.2.1
  * @author qinmoM
  * @github https://github.com/qinmoM/qinmo_net
  */

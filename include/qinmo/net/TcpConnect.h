@@ -11,7 +11,10 @@ namespace net
 
 class TcpListen;
 #if defined(__linux__)
-class detail::ReactorTcpClientCore;
+namespace detail
+{
+class ReactorTcpClientCore;
+} // namespace detail
 #endif
 
 /// @brief encapsulate client socket and connect socket

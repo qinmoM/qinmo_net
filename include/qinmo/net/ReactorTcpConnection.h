@@ -15,7 +15,10 @@ namespace net
 {
 
 class ReactorTcpConnection;
-class detail::ReactorTcpClientCore;
+namespace detail
+{
+class ReactorTcpClientCore;
+} // namespace detail
 
 
 

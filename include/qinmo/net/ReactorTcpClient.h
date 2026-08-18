@@ -5,7 +5,10 @@
 namespace qinmo::net
 {
 
-class detail::ReactorTcpClientCore;
+namespace detail
+{
+class ReactorTcpClientCore;
+} // namespace detail
 
 
 class ReactorTcpClient
