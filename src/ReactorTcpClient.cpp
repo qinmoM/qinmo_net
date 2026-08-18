@@ -32,10 +32,24 @@ ReactorTcpClientCore::~ReactorTcpClientCore()
     }
 
     if (conn)
+    {
         loop_->queueInLoop( [conn]() { conn->handleClose(); } );
+    }
     else
-        // bug!!! removeChannel has shared_from_this()
-        stopConnecting();
+    {
+        if (ClientState::kConnecting == state_)
+        {
+            Channel* channelPtr = channel_.release();
+            loop_->queueInLoop(
+                [channelPtr]() -> void
+                {
+                    channelPtr->disableAll();
+                    channelPtr->remove();
+                    delete channelPtr;
+                }
+            );
+        }
+    }
 }
 
 
