@@ -76,7 +76,18 @@ project/
 
 ────If you want to compile this library, views follow the steps:
 
-- You can `cd` into `external/` folder and run `git clone -b main --single-branch https://github.com/qinmoM/qinmo_net` to clone this repository, or download and unpack the a version from release.  
+- You can `cd` into `external/` folder and run following command to clone this repository.
+- Or you can use `git module`.
+
+```shell
+# method 1:
+# `cd` in folder for third-party
+git clone -b main --single-branch https://github.com/qinmoM/qinmo_net
+
+# method 2:
+git submodule add https://github.com/qinmoM/qinmo_net external/qinmo_net
+```
+
 - Then add the following lines to the end of your *CMakeLists.txt*:
 
 ```cmake
