@@ -26,7 +26,7 @@
 
 #include <stdint.h>
 #include "qinmo/base/detail/Common.h"
-#include "../../base/StringView.h"
+#include "qinmo/tool/StringView.h"
 
 
 

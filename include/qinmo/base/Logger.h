@@ -3,7 +3,7 @@
  */
 #pragma once
 
-#include "StringConcat.h"
+#include "qinmo/tool/StringConcat.h"
 #include "Timestamp.h"
 #include "Thread.h"
 #include <fstream>
