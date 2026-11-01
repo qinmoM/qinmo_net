@@ -14,6 +14,12 @@ file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/logs)
 
 
 
+add_subdirectory(
+    external/qinmo_tool
+)
+
+
+
 if (UNIX)
     add_library(qinmo_net
         ${CMAKE_CURRENT_SOURCE_DIR}/src/Channel.cpp
@@ -74,6 +80,10 @@ elseif (WIN32)
             ws2_32
     )
 endif()
+target_link_libraries(qinmo_net
+    PUBLIC
+        qinmo_tool
+)
 
 target_compile_definitions(qinmo_net
     PUBLIC
