@@ -82,10 +82,11 @@ project/
 ```shell
 # method 1:
 # `cd` in folder for third-party
-git clone -b main --single-branch https://github.com/qinmoM/qinmo_net
+git clone -b main --single-branch --recurse-submodules https://github.com/qinmoM/qinmo_net
 
 # method 2:
 git submodule add https://github.com/qinmoM/qinmo_net external/qinmo_net
+git submodule update --init --recursive
 ```
 
 - Then add the following lines to the end of your *CMakeLists.txt*:
