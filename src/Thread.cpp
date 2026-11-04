@@ -1,4 +1,5 @@
-#include "qinmo/base/Logger.h"
+#include "qinmo/base/Thread.h"
+#include "qinmo/tool/Logger.h"
 
 namespace qinmo
 {

@@ -17,6 +17,8 @@
 
 #endif
 
+#include "qinmo/tool/detail/SystemTime.h"
+
 
 
 /// @namespace qinmo
@@ -39,7 +41,6 @@ inline ssize_t write(int fd, const void* ptr, size_t count) { return ::write(fd,
                 time
 */
 inline bool localtime(const time_t& time, std::tm& tm) { return nullptr != ::localtime_r(&time, &tm); }
-inline bool gmtime(const time_t& time, std::tm& tm) { return nullptr != ::gmtime_r(&time, &tm); }
 
 /*
                 eventfd
@@ -66,7 +67,6 @@ inline int timerfd_settime(int fd, int flags, const itimerspec* newVal, itimersp
                 time
 */
 inline bool localtime(const time_t& time, std::tm& tm) { return 0 == ::localtime_s(&tm, &time); }
-inline bool gmtime(const time_t& time, std::tm& tm) { return 0 == ::gmtime_s(&tm, &time); }
 
 /*
                 thread ID in system call

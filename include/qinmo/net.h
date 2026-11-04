@@ -16,7 +16,7 @@
 
 #if defined(__linux__)
 
-#include <qinmo/base/Logger.h>
+#include <qinmo/tool/Logger.h>
 #include <qinmo/net/ReactorTcpServer.h>
 #include <qinmo/net/ReactorTcpClient.h>
 #include <qinmo/net/EventLoop.h>
@@ -31,7 +31,7 @@ using TcpClient = ReactorTcpClient;
 
 #include <qinmo/net/TcpListen.h>
 #include <qinmo/net/SocketUDP.h>
-#include <qinmo/base/Logger.h>
+#include <qinmo/tool/Logger.h>
 
 #else
 

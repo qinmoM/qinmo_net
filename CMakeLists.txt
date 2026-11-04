@@ -3,14 +3,14 @@ project(qinmo_net)
 
 
 
-set(QINMO_LOG_PATH "${CMAKE_BINARY_DIR}/logs/logger.log"
-    CACHE STRING "qinmo-net log path"
-)
-set(QINMO_LOG_LEVEL 3
-    CACHE INTERNAL "qinmo-net log level"
-)
+# set(QINMO_LOG_PATH "${CMAKE_BINARY_DIR}/logs/logger.log"
+#     CACHE STRING "qinmo-net log path"
+# )
+# set(QINMO_LOG_LEVEL 3
+#     CACHE INTERNAL "qinmo-net log level"
+# )
 
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/logs)
+# file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/logs)
 
 
 
@@ -85,9 +85,9 @@ target_link_libraries(qinmo_net
         qinmo_tool
 )
 
-target_compile_definitions(qinmo_net
-    PUBLIC
-        QINMO_LOG_PATH="${QINMO_LOG_PATH}"
-    PUBLIC
-        QINMO_LOG_LEVEL=${QINMO_LOG_LEVEL}
-)
+# target_compile_definitions(qinmo_net
+#     PUBLIC
+#         QINMO_LOG_PATH="${QINMO_LOG_PATH}"
+#     PUBLIC
+#         QINMO_LOG_LEVEL=${QINMO_LOG_LEVEL}
+# )
