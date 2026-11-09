@@ -13,27 +13,29 @@ namespace net
 /// @note
 ///   default constructor is empty.
 ///   you must specify whether to Create a new instance or Attach to an existing one. Such as:
-/// @note - SocketUDP sock1 = SocketUDP::createRaw(InetAddr(), SOCK_NONBLOCK | SOCK_CLOEXEC)
+/// @note - SocketUDP sock1 = SocketUDP::createRaw(InetAddr(), SockFlags::NonBlocking | SockFlags::CloseOnExec)
 /// @note - SocketUDP sock2(SocketUDP::attach(1))
 class SocketUDP
 {
 public:
-    /// @brief create a new socket
-    /// @return using the move constructor
+    /// @brief create a new socket, will be closed upon release
+    /// @param addr only use protocol, you must re-bind() after created
     /// @note better to check whether the returned value is valid : Call function isValid()
-    /// @note the addr only use protocol, you must bind after created
-    static SocketUDP createRaw(const InetAddr& addr, int flags = 0);
-    /// @brief equal to createRaw(InetAddr(), SOCK_NONBLOCK | SOCK_CLOEXEC)
-    /// @note better to check whether the returned value is valid: call isValid()
+    /// @note has no  SockFlags::CloseOnExec  in the Windows Platform
+    static SocketUDP createRaw(const InetAddr& addr, SockFlags flags = SockFlags::None);
+    /// @brief equal to createRaw(InetAddr(), SockFlags::NonBlocking | SockFlags::CloseOnExec)
     static SocketUDP createNonBlockOrDie(const InetAddr& addr);
-    /// @brief attach an existing socket
+    /// @brief attach an existing socket, will be closed upon release
     /// @param fd file descriptor
-    /// @return using the move constructor
     /// @note must check whether the returned value is valid : Call function isValid()
-    static SocketUDP attach(const int fd);
+    static SocketUDP attach(const SocketType fd);
+    /// @brief create a view, won't be closed upon release, and close() cannot be call
+    /// @param fd file descriptor
+    /// @note must check whether the returned value is valid : Call function isValid()
+    static SocketUDP borrow(const SocketType fd);
 
 public:
-    SocketUDP();
+    explicit SocketUDP();
     ~SocketUDP();
 
     SocketUDP(const SocketUDP&) = delete;
@@ -45,8 +47,10 @@ public:
 public:
     /// @return return true if has been initialized
     bool isValid() const;
+    /// @return return true if will be closed upon release
+    bool isOwns() const;
     /// @brief get current file descriptor
-    int getfd() const;
+    SocketType getfd() const;
     /// @brief return true if has been bind local address
     bool isBind() const;
     /// @brief return true if has been connect peer address
@@ -78,14 +82,15 @@ public:
     bool setReuseAddr(bool enable);
 
 private:
-    SocketUDP(int fd);
+    SocketUDP(SocketType fd, bool owns);
 
 private:
     static constexpr uint8_t IsBind = 1;
     static constexpr uint8_t IsConnect = 2;
 
-    int sockfd_ = -1;
+    SocketType sockfd_ = g_SocketTypeEmpty;
     uint8_t state_ = 0;
+    bool owns_ = false;
 
 };
 

@@ -10,6 +10,12 @@ namespace net
 {
 
 class TcpListen;
+#if defined(__linux__)
+namespace detail
+{
+class ReactorTcpClientCore;
+} // namespace detail
+#endif
 
 /// @brief encapsulate client socket and connect socket
 /// @note you must specify whether to Create a client use server address or Receive from listen socket
@@ -22,8 +28,8 @@ public:
     /// @param serverAddr remote server address
     /// @return using the move constructor
     /// @note better to check whether the returned value is valid : Call isValid()
-    static TcpConnect connectRaw(const InetAddr& serverAddr, int flags = 0);
-    /// @brief equal to connectRaw(InetAddr(), SOCK_NONBLOCK | SOCK_CLOEXEC)
+    static TcpConnect connectRaw(const InetAddr& serverAddr, SockFlags flags = SockFlags::None);
+    /// @brief equal to connectRaw(InetAddr(), SockFlags::NonBlocking | SockFlags::CloseOnExec)
     /// @note better to check whether the returned value is valid: call isValid()
     static TcpConnect connectNonBlockOrDie(const InetAddr& serverAddr);
 
@@ -64,6 +70,9 @@ public:
 
 private:
     friend class TcpListen;
+#if defined(__linux__)
+    friend class detail::ReactorTcpClientCore;
+#endif
 
     TcpConnect(SocketTCP&& sock);
 

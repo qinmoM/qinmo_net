@@ -1,5 +1,4 @@
 #include "qinmo/net/TcpConnect.h"
-#include "qinmo/base/Logger.h"
 
 /// @namespace qinmo
 namespace qinmo
@@ -8,7 +7,7 @@ namespace qinmo
 namespace net
 {
 
-TcpConnect TcpConnect::connectRaw(const InetAddr &serverAddr, int flags)
+TcpConnect TcpConnect::connectRaw(const InetAddr &serverAddr, SockFlags flags)
 {
     SocketTCP sock = SocketTCP::createRaw(serverAddr, flags);
     if (!sock.isValid() || !sock.connect(serverAddr))
@@ -19,7 +18,7 @@ TcpConnect TcpConnect::connectRaw(const InetAddr &serverAddr, int flags)
 
 TcpConnect TcpConnect::connectNonBlockOrDie(const InetAddr &serverAddr)
 {
-    return TcpConnect::connectRaw(serverAddr, SOCK_NONBLOCK | SOCK_CLOEXEC);
+    return TcpConnect::connectRaw(serverAddr, SockFlags::NonBlocking | SockFlags::CloseOnExec);
 }
 
 TcpConnect::TcpConnect() : sock_() { }

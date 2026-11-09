@@ -10,15 +10,15 @@ namespace net
 {
 
 /// @brief encapsulate listen socket
-/// @note example: TcpListen listen = TcpListen::createRaw(InetAddr(), SOCK_NONBLOCK | SOCK_CLOEXEC);
+/// @note example: TcpListen listen = TcpListen::createRaw(InetAddr(), SockFlags::NonBlocking | SockFlags::CloseOnExec);
 class TcpListen
 {
 public:
     /// @brief create a listen socket
     /// @return use move construct
     /// @note better to check whether the returned value is valid: call isValid()
-    static TcpListen createRaw(const InetAddr& addr, int flags = 0);
-    /// @brief equal to createRaw(addr, SOCK_NONBLOCK | SOCK_CLOEXEC)
+    static TcpListen createRaw(const InetAddr& addr, SockFlags flags = SockFlags::None);
+    /// @brief equal to createRaw(addr, SockFlags::NonBlocking | SockFlags::CloseOnExec)
     /// @note better to check whether the returned value is valid: call isValid()
     static TcpListen createNonBlockOrDie(const InetAddr& addr);
 
@@ -54,8 +54,8 @@ public:
     bool listen(int num = 128);
     /// @return a new SocketTCP object
     /// @note must check whether InetAddr and SocketTCP is invalid
-    TcpConnect accept(InetAddr& addr, int flags = 0);
-    /// @brief equal to accept(addr, SOCK_NONBLOCK | SOCK_CLOEXEC)
+    TcpConnect accept(InetAddr& addr, SockFlags flags = SockFlags::None);
+    /// @brief equal to accept(addr, SockFlags::NonBlocking | SockFlags::CloseOnExec)
     TcpConnect acceptNonBlockOrDie(InetAddr& addr);
     /// @note isValid function return false After call close
     bool close();

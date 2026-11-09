@@ -1,8 +1,12 @@
-# qinmo_net  
-- This is my net library. Implementation based on C++11 and Reactor model.  
-- Reference [muduo](https://github.com/chenshuo/muduo).  
-## Tutorials:  
-Simple example:
+# qinmo_net
+
+- This is my net library. Implementation based on C++11 and Reactor model.
+- Reference [muduo](https://github.com/chenshuo/muduo).
+
+## Tutorials
+
+Simple example1(Linux-Only):
+
 ```cpp
 #include <qinmo/net.h>
 
@@ -13,7 +17,7 @@ int main()
     qinmo::net::InetAddr addr;
     // addr.setIP(...);
     // addr.setPort(...);
-    qinmo::net::ReactorTcpServer server(&loop, addr, 0);
+    qinmo::net::TcpServer server(&loop, addr, 0);
     // server.setConnectFunc(...);
     // server.setDisconnectFunc(...);
 
@@ -23,26 +27,70 @@ int main()
     return 0;
 }
 ```
-[See details](./example/).  
-## Install:  
+
+Simple example2(Linux and Windows):
+
+```cpp
+#include <qinmo/net.h>
+
+int main()
+{
+    qinmo::net::InetAddr local;
+    // local.setIP(...);
+    // local.setPort(...);
+    qinmo::net::InetAddr peer;
+    // peer.setIP(...);
+    // peer.setPort(...);
+
+    SocketUDP sock = SocketUDP::createRaw(local);
+    if (!sock.isValid())
+        std::exit(-1);
+
+    std::cout << "send bytes:" << sock.sendto("hello", 6, peer) << std::endl;
+}
+```
+
+[See details](./example/).
+
+## Install
+
 After obtaining the code, go back to your project root directory and run CMakeLists.txt script:
+
 ```shell
 mkdir build && cd build
 cmake .. # -DQINMO_LOG_PATH="log output path" -DQINMO_LOG_LEVEL=0~5 # output level: 0:trace - 5:fatal
 make
 ```
-### How to get the code:  
-If your project structure as follows:  
-```
+
+### How to get the code
+
+If your project structure as follows:
+
+```cpp
 project/
 ├── external/       # third-party
 ├── include/
 ├── src/
 └── CMakeLists.txt
 ```
-────If you want to compile this library, views follow the steps:  
-- You can `cd` into `external/` folder and run `git clone -b main --single-branch https://github.com/qinmoM/qinmo_net` to clone this repository, or download and unpack the a version from release.  
-- Then add the following lines to the end of your *CMakeLists.txt*:  
+
+────If you want to compile this library, views follow the steps:
+
+- You can `cd` into `external/` folder and run following command to clone this repository.
+- Or you can use `git module`.
+
+```shell
+# method 1:
+# `cd` in folder for third-party
+git clone -b main --single-branch --recurse-submodules https://github.com/qinmoM/qinmo_net
+
+# method 2:
+git submodule add https://github.com/qinmoM/qinmo_net external/qinmo_net
+git submodule update --init --recursive
+```
+
+- Then add the following lines to the end of your *CMakeLists.txt*:
+
 ```cmake
 add_subdirectory(external/qinmo_net)
 
@@ -51,6 +99,7 @@ target_link_libraries(${PROJECT_NAME}
         qinmo_net
 )
 ```
+
 ---  
-> Only supports linux now.  
-> Welcome to discuss.  
+> Raws socket are cross-platform, but TcpServer-related supports linux-only.  
+> Welcome to discuss.

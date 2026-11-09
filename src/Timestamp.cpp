@@ -1,7 +1,5 @@
 #include "../include/qinmo/base/Timestamp.h"
-
-#include <ctime>
-#include <chrono>
+#include "qinmo/base/detail/Common.h"
 
 namespace qinmo
 {
@@ -27,9 +25,9 @@ std::string Timestamp::toString(bool local) const
     time_t t = getSeconds();
     std::tm tm;
     if (local)
-        ::localtime_r(&t, &tm);
+        detail::localtime(t, tm);
     else
-        ::gmtime_r(&t, &tm);
+        detail::gmtime(t, tm);
 
     char buf[32] = "";
     int len = std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
@@ -42,9 +40,9 @@ std::string Timestamp::toStringMicroseconds(bool local) const
     time_t t = getSeconds();
     std::tm tm;
     if (local)
-        ::localtime_r(&t, &tm);
+        detail::localtime(t, tm);
     else
-        ::gmtime_r(&t, &tm);
+        detail::gmtime(t, tm);
 
     char buf[32] = "";
     int len = std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);

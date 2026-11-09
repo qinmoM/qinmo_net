@@ -1,6 +1,6 @@
 #include "qinmo/net/ReactorTcpServer.h"
 #include "qinmo/net/EventLoop.h"
-#include "qinmo/base/Logger.h"
+#include "qinmo/tool/Logger.h"
 
 /// @namespace qinmo
 namespace qinmo
@@ -12,12 +12,21 @@ namespace net
 ReactorTcpServer::ReactorTcpServer(EventLoop* loop, const InetAddr& listenAddr, unsigned int numThread, bool reusePort)
     : loop_(loop)
     , threadPool_(new EventLoopThreadPool(loop, numThread))
+    , connect_(detail::defaultFuncConn)
+    , disconnect_(detail::defaultFuncConn)
+    , message_(detail::defaultFuncMessage)
+    , writeComplete_(detail::defaultFuncConn)
     , sock_(TcpListen::createNonBlockOrDie(listenAddr))
     , acceptChannel_(loop, sock_.getfd())
     , started_(false)
     , numConn_(0)
 {
     QINMO_INFO("ReactorTcpServer create.");
+    if (!loop_)
+    {
+        QINMO_FATAL("EventLoop not be nullptr.");
+        std::exit(-1);
+    }
     if (!sock_.isValid())
     {
         QINMO_FATAL("Failed to create socket with nonblockOrDie.");
@@ -111,7 +120,7 @@ void ReactorTcpServer::newConnect(Timestamp time)
 
     int tempfd = cli.getfd();
     RTcpConnPtr conn =
-        std::make_shared<ReactorTcpConnect>(
+        std::make_shared<ReactorTcpConnection>(
             subLoop,
             std::move(cli),
             localAddr,
@@ -123,7 +132,7 @@ void ReactorTcpServer::newConnect(Timestamp time)
     conn->setDisconnectFunc(disconnect_);
     conn->setMessageFunc(message_);
     conn->setWriteCompleteFunc(writeComplete_);
-    std::weak_ptr<ReactorTcpConnect> weakConn = conn;
+    std::weak_ptr<ReactorTcpConnection> weakConn = conn;
     conn->setCloseFunc(
         [this, weakConn]() -> void
         {

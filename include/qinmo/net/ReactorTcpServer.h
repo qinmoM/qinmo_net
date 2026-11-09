@@ -1,7 +1,7 @@
 #pragma once
 
 #include "TcpListen.h"
-#include "ReactorTcpConnect.h"
+#include "ReactorTcpConnection.h"
 
 /// @namespace qinmo
 namespace qinmo

@@ -7,14 +7,14 @@ namespace qinmo
 namespace net
 {
 
-TcpListen TcpListen::createRaw(const InetAddr& addr, int flags)
+TcpListen TcpListen::createRaw(const InetAddr& addr, SockFlags flags)
 {
     return TcpListen(SocketTCP::createRaw(addr, flags));
 }
 
 TcpListen TcpListen::createNonBlockOrDie(const InetAddr& addr)
 {
-    return TcpListen::createRaw(addr, SOCK_NONBLOCK | SOCK_CLOEXEC);
+    return TcpListen::createRaw(addr, SockFlags::NonBlocking | SockFlags::CloseOnExec);
 }
 
 
@@ -91,7 +91,7 @@ bool TcpListen::listen(int num)
     return true;
 }
 
-TcpConnect TcpListen::accept(InetAddr& addr, int flags)
+TcpConnect TcpListen::accept(InetAddr& addr, SockFlags flags)
 {
     if (TcpListenState::Listening != state_)
         return TcpConnect();
@@ -101,7 +101,7 @@ TcpConnect TcpListen::accept(InetAddr& addr, int flags)
 
 TcpConnect TcpListen::acceptNonBlockOrDie(InetAddr &addr)
 {
-    return accept(addr, SOCK_NONBLOCK | SOCK_CLOEXEC);
+    return accept(addr, SockFlags::NonBlocking | SockFlags::CloseOnExec);
 }
 
 bool TcpListen::close()

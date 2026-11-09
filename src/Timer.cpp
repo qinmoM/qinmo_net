@@ -1,5 +1,5 @@
 #include "qinmo/net/Timer.h"
-#include "qinmo/base/Logger.h"
+#include "qinmo/tool/Logger.h"
 
 namespace qinmo
 {

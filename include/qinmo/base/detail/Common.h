@@ -1,10 +1,25 @@
 #pragma once
 
+#include <string.h>
+#include <ctime>
+#include <chrono>
+
+#if defined(__linux__)
+
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/eventfd.h>
 #include <sys/timerfd.h>
-#include <string.h>
+
+#elif defined(_WIN32)
+
+#include <windows.h>
+
+#endif
+
+#include "qinmo/tool/detail/SystemTime.h"
+
+
 
 /// @namespace qinmo
 namespace qinmo
@@ -14,6 +29,8 @@ namespace qinmo
 namespace detail
 {
 
+#if defined(__linux__)
+
 inline char* strerror(int code) { return ::strerror(code); };
 
 inline int close(int fd) { return ::close(fd); }
@@ -21,12 +38,17 @@ inline ssize_t read(int fd, void* ptr, size_t count) { return ::read(fd, ptr, co
 inline ssize_t write(int fd, const void* ptr, size_t count) { return ::write(fd, ptr, count); }
 
 /*
+                time
+*/
+inline bool localtime(const time_t& time, std::tm& tm) { return nullptr != ::localtime_r(&time, &tm); }
+
+/*
                 eventfd
 */
 inline int eventfd(unsigned int initval, int flags) { return ::eventfd(initval, flags); }
 
 /*
-                syscall
+                thread ID in system call
 */
 inline long tid() { return ::syscall(SYS_gettid); }
 
@@ -38,6 +60,20 @@ inline long tid() { return ::syscall(SYS_gettid); }
 inline int timerfd_create(int clockid, int flags) { return ::timerfd_create(clockid, flags); }
 /// @param flags 0 : relative time  |  TFD_TIMER_ABSTIME : absolute time
 inline int timerfd_settime(int fd, int flags, const itimerspec* newVal, itimerspec* oldVal) { return ::timerfd_settime(fd, flags, newVal, oldVal); }
+
+#elif defined(_WIN32)
+
+/*
+                time
+*/
+inline bool localtime(const time_t& time, std::tm& tm) { return 0 == ::localtime_s(&tm, &time); }
+
+/*
+                thread ID in system call
+*/
+inline DWORD tid() { return ::GetCurrentThreadId(); }
+
+#endif
 
 } // namespace detail
 } // namespace qinmo
