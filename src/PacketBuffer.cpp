@@ -8,7 +8,7 @@ namespace qinmo
 namespace net
 {
 
-PacketBuffer::PacketBuffer(uint8_t headerSize, std::size_t bodySize)
+PacketBuffer::PacketBuffer(uint32_t headerSize, std::size_t bodySize)
     : headerSize_(headerSize)
     , buf_(headerSize + bodySize)
     , rIndex_(headerSize)
@@ -18,7 +18,7 @@ PacketBuffer::PacketBuffer(uint8_t headerSize, std::size_t bodySize)
 
 PacketBuffer::~PacketBuffer() { }
 
-uint8_t PacketBuffer::getHeadSize() const
+uint32_t PacketBuffer::getHeadSize() const
 {
     return headerSize_;
 }
@@ -33,9 +33,16 @@ std::size_t PacketBuffer::getWritableSize() const
     return buf_.size() - wIndex_;
 }
 
+void PacketBuffer::reset()
+{
+    rIndex_ = 0;
+    wIndex_ = 0;
+    hsIndex_ = 0;
+}
 
 
-bool PacketBuffer::headGet8(uint8_t offset, int8_t& target) const
+
+bool PacketBuffer::headGet8(uint32_t offset, int8_t& target) const
 {
     if (offset + sizeof(target) > headerSize_)
         return false;
@@ -44,7 +51,7 @@ bool PacketBuffer::headGet8(uint8_t offset, int8_t& target) const
     return true;
 }
 
-bool PacketBuffer::headGet16(uint8_t offset, int16_t& target) const
+bool PacketBuffer::headGet16(uint32_t offset, int16_t& target) const
 {
     if (offset + sizeof(target) > headerSize_)
         return false;
@@ -54,7 +61,7 @@ bool PacketBuffer::headGet16(uint8_t offset, int16_t& target) const
     return true;
 }
 
-bool PacketBuffer::headGet32(uint8_t offset, int32_t& target) const
+bool PacketBuffer::headGet32(uint32_t offset, int32_t& target) const
 {
     if (offset + sizeof(target) > headerSize_)
         return false;
@@ -64,7 +71,7 @@ bool PacketBuffer::headGet32(uint8_t offset, int32_t& target) const
     return true;
 }
 
-bool PacketBuffer::headGet64(uint8_t offset, int64_t& target) const
+bool PacketBuffer::headGet64(uint32_t offset, int64_t& target) const
 {
     if (offset + sizeof(target) > headerSize_)
         return false;
@@ -74,7 +81,7 @@ bool PacketBuffer::headGet64(uint8_t offset, int64_t& target) const
     return true;
 }
 
-bool PacketBuffer::headGetString(uint8_t offset, uint8_t len, std::string& str) const
+bool PacketBuffer::headGetString(uint32_t offset, uint32_t len, std::string& str) const
 {
     if (offset + len > headerSize_)
         return false;
@@ -90,7 +97,7 @@ bool PacketBuffer::headGetAll(std::string& str) const
 }
 
 
-bool PacketBuffer::headSet8(uint8_t offset, int8_t n)
+bool PacketBuffer::headSet8(uint32_t offset, int8_t n)
 {
     if (offset + sizeof(n) > headerSize_)
         return false;
@@ -99,7 +106,7 @@ bool PacketBuffer::headSet8(uint8_t offset, int8_t n)
     return true;
 }
 
-bool PacketBuffer::headSet16(uint8_t offset, int16_t n)
+bool PacketBuffer::headSet16(uint32_t offset, int16_t n)
 {
     if (offset + sizeof(n) > headerSize_)
         return false;
@@ -109,7 +116,7 @@ bool PacketBuffer::headSet16(uint8_t offset, int16_t n)
     return true;
 }
 
-bool PacketBuffer::headSet32(uint8_t offset, int32_t n)
+bool PacketBuffer::headSet32(uint32_t offset, int32_t n)
 {
     if (offset + sizeof(n) > headerSize_)
         return false;
@@ -119,7 +126,7 @@ bool PacketBuffer::headSet32(uint8_t offset, int32_t n)
     return true;
 }
 
-bool PacketBuffer::headSet64(uint8_t offset, int64_t n)
+bool PacketBuffer::headSet64(uint32_t offset, int64_t n)
 {
     if (offset + sizeof(n) > headerSize_)
         return false;
@@ -129,7 +136,7 @@ bool PacketBuffer::headSet64(uint8_t offset, int64_t n)
     return true;
 }
 
-bool PacketBuffer::headSetString(uint8_t offset, const std::string& str)
+bool PacketBuffer::headSetString(uint32_t offset, const std::string& str)
 {
     if (offset + str.size() > headerSize_)
         return false;

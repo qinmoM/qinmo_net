@@ -22,35 +22,38 @@ public:
     /// @note if headerSize is 0, it is a normal buffer
     /// @note in receive buffer, headerSize **must** is 0.
     ///       or you can fill protocol header manually if you want to keep it
-    explicit PacketBuffer(uint8_t headerSize, std::size_t bodySize = 1024);
+    explicit PacketBuffer(uint32_t headerSize, std::size_t bodySize = 1024);
     ~PacketBuffer();
 
 public:
     /// @brief all length of protocol header
-    uint8_t getHeadSize() const;
+    uint32_t getHeadSize() const;
     /// @brief length of readable message body
     std::size_t getReadableSize() const;
     /// @brief length of writable message body
     std::size_t getWritableSize() const;
 
+    /// @brief must be called once before parsing a new protocol
+    void reset();
+
 
     /// @brief return protocol header value in host-endian by offset and size
     /// @param offset value Local at the offset from the start
     /// @param target write into target
-    bool headGet8(uint8_t offset, int8_t& target) const;
-    bool headGet16(uint8_t offset, int16_t& target) const;
-    bool headGet32(uint8_t offset, int32_t& target) const;
-    bool headGet64(uint8_t offset, int64_t& target) const;
-    bool headGetString(uint8_t offset, uint8_t len, std::string& str) const;
+    bool headGet8(uint32_t offset, int8_t& target) const;
+    bool headGet16(uint32_t offset, int16_t& target) const;
+    bool headGet32(uint32_t offset, int32_t& target) const;
+    bool headGet64(uint32_t offset, int64_t& target) const;
+    bool headGetString(uint32_t offset, uint32_t len, std::string& str) const;
     bool headGetAll(std::string& str) const;
 
     /// @brief set value in net-endian at the give offset
     /// @param offset value Local at the offset from the start
-    bool headSet8(uint8_t offset, int8_t n);
-    bool headSet16(uint8_t offset, int16_t n);
-    bool headSet32(uint8_t offset, int32_t n);
-    bool headSet64(uint8_t offset, int64_t n);
-    bool headSetString(uint8_t offset, const std::string& str);
+    bool headSet8(uint32_t offset, int8_t n);
+    bool headSet16(uint32_t offset, int16_t n);
+    bool headSet32(uint32_t offset, int32_t n);
+    bool headSet64(uint32_t offset, int64_t n);
+    bool headSetString(uint32_t offset, const std::string& str);
 
 
     /// @brief get value in host-endian without advancing the pointer
@@ -109,8 +112,8 @@ private:
     std::size_t rIndex_;
     std::size_t wIndex_;
 
-    const uint8_t headerSize_;
-    uint8_t hsIndex_;
+    const uint32_t headerSize_;
+    uint32_t hsIndex_;
 
 };
 
