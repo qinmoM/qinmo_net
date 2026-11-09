@@ -179,20 +179,20 @@ bool PacketBuffer::peek64(int64_t& target) const
     return true;
 }
 
-bool PacketBuffer::peekString(std::size_t len, std::string& str) const
+bool PacketBuffer::peekString(std::size_t len, qinmo::StringView& sv) const
 {
     if (getReadableSize() < len)
         return false;
 
     const char* dataPtr = &buf_[rIndex_];
-    str.assign(dataPtr, dataPtr + len);
+    sv = qinmo::StringView(dataPtr, dataPtr + len);
     return true;
 }
 
-bool PacketBuffer::peekAll(std::string& str) const
+bool PacketBuffer::peekAll(qinmo::StringView& sv) const
 {
     const char* dataPtr = &buf_[rIndex_];
-    str.assign(dataPtr, dataPtr + getReadableSize());
+    sv = qinmo::StringView(dataPtr, dataPtr + getReadableSize());
     return true;
 }
 
@@ -236,18 +236,19 @@ bool PacketBuffer::retrieve64(int64_t& target)
 
 bool PacketBuffer::retrieveString(std::size_t len, std::string& str)
 {
-    if (!peekString(len, str))
+    if (getReadableSize() < len)
         return false;
 
+    const char* dataPtr = &buf_[rIndex_];
+    str.assign(dataPtr, dataPtr + len);
     retrieve(len);
     return true;
 }
 
 bool PacketBuffer::retrieveAll(std::string& str)
 {
-    if (!peekAll(str))
-        return false;
-
+    const char* dataPtr = &buf_[rIndex_];
+    str.assign(dataPtr, dataPtr + getReadableSize());
     retrieve(getReadableSize());
     return true;
 }

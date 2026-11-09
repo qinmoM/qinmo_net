@@ -1,8 +1,11 @@
 #pragma once
 
+#include "qinmo/tool/StringView.h"
 #include <vector>
 #include <string>
 #include <stdint.h>
+
+
 
 /// @namespace qinmo
 namespace qinmo
@@ -55,8 +58,8 @@ public:
     bool peek16(int16_t& target) const;
     bool peek32(int32_t& target) const;
     bool peek64(int64_t& target) const;
-    bool peekString(std::size_t len, std::string& str) const;
-    bool peekAll(std::string& str) const;
+    bool peekString(std::size_t len, qinmo::StringView& sv) const;
+    bool peekAll(qinmo::StringView& sv) const;
 
     /// @brief get value in host-endian within advancing the pointer
     bool retrieve8(int8_t& target);
