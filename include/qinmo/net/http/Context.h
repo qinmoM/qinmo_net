@@ -30,8 +30,10 @@ public:
 
 private:
     /// @return false if parsing error
+    /// @note strict matching
     bool parseRequestLine(qinmo::StringView sv);
 
+    Request request_;
     ContextState state_;
 };
 } // namespace http

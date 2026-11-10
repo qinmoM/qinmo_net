@@ -61,7 +61,130 @@ bool Context::parse(qinmo::net::PacketBuffer& buffer)
 
 bool Context::parseRequestLine(qinmo::StringView sv)
 {
-    ;
+    Request::Method method = Request::Method::Unknown;
+    std::string path = "";
+    std::string query = "";
+    Request::Version version = Request::Version::Unknown;
+    qinmo::StringView temp;
+
+    std::size_t pos = sv.find(' ');
+    if (qinmo::StringView::npos == pos || 0 == pos)
+        return false;
+
+    temp = sv.subview(0, pos);
+    sv.remove_prefix(pos + 1);
+    if (!sv.empty() && ' ' == sv[0])
+        return false;
+
+    // parse method
+    if ("GET" == temp)
+        method = Request::Method::Get;
+    else if ("POST" == temp)
+        method = Request::Method::Post;
+    else if ("HEAD" == temp)
+        method = Request::Method::Head;
+
+    if (method == Request::Method::Unknown)
+        return false;
+
+
+    pos = sv.find(' ');
+    if (qinmo::StringView::npos == pos || 0 == pos)
+        return false;
+
+    temp = sv.subview(0, pos);
+    sv.remove_prefix(pos + 1);
+
+    // parse path and query
+    std::size_t decollator = temp.find('?');
+    if (qinmo::StringView::npos == decollator)
+    {
+        path = std::string(temp.data(), temp.size());
+    }
+    else
+    {
+        path = std::string(temp.data(), decollator);
+        query = std::string(temp.data() + decollator + 1, temp.size() - decollator - 1);
+    }
+
+
+    pos = sv.find(' ');
+    if (qinmo::StringView::npos != pos || 8 != sv.size())
+        return false;
+
+    temp = sv;
+
+    // parse version
+    if ("HTTP/1.0" == temp)
+        version = Request::Version::Http10;
+    else if ("HTTP/1.1" == temp)
+        version = Request::Version::Http11;
+
+    if (version == Request::Version::Unknown)
+        return false;
+
+    request_.setMethod(method);
+    request_.setPath(path);
+    request_.setQuery(query);
+    request_.setVersion(version);
+    return true;
 }
+
+// {
+    // std::size_t nullpos = qinmo::StringView::npos;
+    // // locate method to `temp`
+    // qinmo::StringView temp;
+    // std::size_t pos = sv.find_first_not_of(' ');
+    // if (pos == nullpos)
+    //     return false;
+    //
+    // sv = sv.subview(pos);
+    // pos = sv.find(' ');
+    // if (pos == nullpos)
+    //     return false;
+    //
+    // temp = sv.subview(0, pos);
+    //
+    // // locate path in `sv`
+    // sv = sv.subview(pos);
+    // pos = sv.find_first_not_of(' ');
+    // if (pos == nullpos)
+    //     return false;
+    //
+    // sv = sv.subview(pos);
+    //
+    // // parse method
+    // if ("GET" == temp)
+    //     request_.setMethod(Request::Method::Get);
+    // else if ("POST" == temp)
+    //     request_.setMethod(Request::Method::Post);
+    // else if ("HEAD" == temp)
+    //     request_.setMethod(Request::Method::Head);
+    // else
+    //     request_.setMethod(Request::Method::Unknown);
+    //
+    // if (request_.getMethod() == Request::Method::Unknown)
+    //     return false;
+    //
+    // // locate query and path to `temp`
+    // pos = sv.find(' ');
+    // if (nullpos == pos)
+    //     return false;
+    //
+    // temp = sv.subview(0, pos);
+    //
+    // // locate version in `sv`
+    // sv = sv.subview(pos);
+    // pos = sv.find_first_not_of(' ');
+    // if (pos == nullpos)
+    //     return false;
+    //
+    // sv = sv.subview(pos);
+    //
+    // // parse query and path
+    //
+    // // parse version
+    // if ()
+// }
 
 } // namespace qinmo::net::http
