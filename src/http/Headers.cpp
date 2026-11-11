@@ -3,6 +3,35 @@
 namespace qinmo::net::http
 {
 
+bool Headers::isTokenChar(char c)
+{
+    if (qinmo::isDigit(c) || qinmo::isAlpha(c))
+        return true;
+
+    switch (c)
+    {
+        case '!':
+        case '#':
+        case '$':
+        case '%':
+        case '&':
+        case '\'':
+        case '*':
+        case '+':
+        case '-':
+        case '.':
+        case '^':
+        case '_':
+        case '`':
+        case '|':
+        case '~':
+            return true;
+        default:
+            return false;
+    }
+}
+
+
 bool Headers::has(qinmo::StringView name) const
 {
     std::string n(name.data(), name.size());
