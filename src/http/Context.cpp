@@ -43,11 +43,25 @@ bool Context::parse(qinmo::net::PacketBuffer& buffer)
             std::string s;
             buffer.retrieveString(pos + 2, s);
             state_ = ContextState::Headers;
-            /// into request
         }
         else if (ContextState::Headers == state_)
         {
-            ;
+            // obtain the current buffer data
+            qinmo::StringView sv;
+            buffer.peekAll(sv);
+
+            // check whether the end of request line has been reached
+            std::size_t pos = sv.find("\r\n");
+            if (qinmo::StringView::npos == pos)
+                break;
+
+            if (!parseHeader(sv.subview(0, pos)))
+            {
+                noError = false;
+                break;
+            }
+
+            // parse successful
         }
         else if (ContextState::Body == state_)
         {
@@ -62,8 +76,8 @@ bool Context::parse(qinmo::net::PacketBuffer& buffer)
 bool Context::parseRequestLine(qinmo::StringView sv)
 {
     Request::Method method = Request::Method::Unknown;
-    std::string path = "";
-    std::string query = "";
+    qinmo::StringView path = "";
+    qinmo::StringView query = "";
     Request::Version version = Request::Version::Unknown;
     qinmo::StringView temp;
 
@@ -99,12 +113,12 @@ bool Context::parseRequestLine(qinmo::StringView sv)
     std::size_t decollator = temp.find('?');
     if (qinmo::StringView::npos == decollator)
     {
-        path = std::string(temp.data(), temp.size());
+        path = temp;
     }
     else
     {
-        path = std::string(temp.data(), decollator);
-        query = std::string(temp.data() + decollator + 1, temp.size() - decollator - 1);
+        path = qinmo::StringView(temp.data(), decollator);
+        query = qinmo::StringView(temp.data() + decollator + 1, temp.size() - decollator - 1);
     }
 
 
@@ -186,5 +200,35 @@ bool Context::parseRequestLine(qinmo::StringView sv)
     // // parse version
     // if ()
 // }
+
+bool Context::parseHeader(qinmo::StringView sv)
+{
+    std::size_t pos = sv.find(':');
+    if (qinmo::StringView::npos == pos || 0 == pos)
+        return false;
+
+    qinmo::StringView name = sv.subview(0, pos);
+    qinmo::StringView value = sv.subview(pos + 1);
+
+    for (const char c : name)
+    {
+        if (!Request::isTokenChar(c))
+            return false;
+    }
+
+    pos = value.find_first_not_of(" \t");
+    if (qinmo::StringView::npos == pos)
+        pos = value.size();
+
+    value.remove_prefix(pos);
+
+    if (!value.empty())
+    {
+        pos = value.find_last_not_of(" \t");
+        value.remove_suffix(value.size() - pos - 1);
+    }
+
+    request_.getHeaders().add(name, value);
+}
 
 } // namespace qinmo::net::http
