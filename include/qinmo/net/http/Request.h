@@ -23,9 +23,6 @@ public:
         Http11
     };
 
-
-    static bool isTokenChar(char c);
-
 public:
     Method getMethod() const;
     std::string getPath() const;

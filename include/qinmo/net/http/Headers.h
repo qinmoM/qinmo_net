@@ -13,6 +13,9 @@ class Headers
 public:
     using HeadersType = std::vector<std::pair<std::string, std::string>>;
 
+
+    static bool isTokenChar(char c);
+
 public:
     bool has(qinmo::StringView name) const;
 
