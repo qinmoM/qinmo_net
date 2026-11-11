@@ -235,13 +235,14 @@ void ReactorTcpConnection::send(PacketBuffer& buf)
     }
     outputBuffer_.appendString(str);
 
-    if (!buf.peekAll(str))
+    qinmo::StringView sv;
+    if (!buf.peekAll(sv))
     {
         // it definitely won't happen
         QINMO_ERROR("PacketBuffer.send(buf) error. fd=", sock_.getfd());
         return;
     }
-    outputBuffer_.appendString(str);
+    outputBuffer_.appendString(std::string(sv.data(), sv.size()));
 
     if (!channel_.isWrite())
         channel_.enableWrite();
