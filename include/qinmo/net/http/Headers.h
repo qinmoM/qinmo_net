@@ -17,12 +17,16 @@ public:
     static bool isTokenChar(char c);
 
 public:
+    /// @brief check whether name exists
     bool has(qinmo::StringView name) const;
 
+    /// @return return false if name does not exists or is not a single name
     bool getSingle(qinmo::StringView name, qinmo::StringView& value) const;
+    /// @brief obtain all values of this name
     std::vector<qinmo::StringView> getAll(qinmo::StringView name) const;
 
 
+    /// @brief insert a field
     void add(qinmo::StringView name, qinmo::StringView value);
 
 private:
