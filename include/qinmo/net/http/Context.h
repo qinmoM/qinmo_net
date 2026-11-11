@@ -32,6 +32,7 @@ private:
     /// @return false if parsing error
     /// @note strict matching
     bool parseRequestLine(qinmo::StringView sv);
+    bool parseHeader(qinmo::StringView sv);
 
     Request request_;
     ContextState state_;
