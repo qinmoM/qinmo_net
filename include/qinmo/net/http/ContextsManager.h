@@ -1,10 +1,14 @@
 #pragma once
 
 #include "qinmo/net/http/Context.h"
-#include "qinmo/net/ReactorTcpConnection.h"
 #include <unordered_map>
 
-namespace qinmo::net::http
+namespace qinmo::net
+{
+
+class ReactorTcpConnection;
+
+namespace http
 {
 
 class ContextsManager
@@ -21,4 +25,5 @@ public:
 private:
     static thread_local std::unordered_map<TcpConnect*, Context> contexts_;
 };
-} // namespace qinmo::net::http
+} // namespace http
+} // namespace qinmo::net
