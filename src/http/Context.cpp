@@ -55,13 +55,23 @@ bool Context::parse(qinmo::net::PacketBuffer& buffer)
             if (qinmo::StringView::npos == pos)
                 break;
 
-            if (!parseHeader(sv.subview(0, pos)))
+            // parse headers
+            if (0 != pos && !parseHeader(sv.subview(0, pos)))
             {
                 noError = false;
                 break;
             }
 
             // parse successful
+            std::string s;
+            buffer.retrieveString(pos + 2, s);
+
+            // end of header
+            if (0 == pos)
+            {
+                /// valid
+                state_ = ContextState::Body;
+            }
         }
         else if (ContextState::Body == state_)
         {
