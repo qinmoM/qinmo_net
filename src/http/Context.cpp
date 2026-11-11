@@ -1,5 +1,6 @@
 #include "qinmo/net/http/Context.h"
 #include "qinmo/net/PacketBuffer.h"
+#include "qinmo/tool/Logger.h"
 
 namespace qinmo::net::http
 {
@@ -36,10 +37,12 @@ bool Context::parse(qinmo::net::PacketBuffer& buffer)
             if (!parseRequestLine(sv.subview(0, pos)))
             {
                 noError = false;
+                QINMO_DEBUG("Parse request-line failed: ", sv);
                 break;
             }
 
             // parse successful
+            QINMO_DEBUG("Parse request-line successful: ", sv);
             std::string s;
             buffer.retrieveString(pos + 2, s);
             state_ = ContextState::Headers;
@@ -58,18 +61,22 @@ bool Context::parse(qinmo::net::PacketBuffer& buffer)
             // parse headers
             if (0 != pos && !parseHeader(sv.subview(0, pos)))
             {
+                QINMO_DEBUG("Parse Header failed: ", sv);
                 noError = false;
                 break;
             }
 
             // parse successful
+            QINMO_DEBUG("Rarse Header successful: ", sv);
             std::string s;
             buffer.retrieveString(pos + 2, s);
 
             // end of header
             if (0 == pos)
             {
-                /// valid
+                if (!verifyHeader())
+                    return false;
+
                 state_ = ContextState::Body;
             }
         }
@@ -222,7 +229,7 @@ bool Context::parseHeader(qinmo::StringView sv)
 
     for (const char c : name)
     {
-        if (!Request::isTokenChar(c))
+        if (!Headers::isTokenChar(c))
             return false;
     }
 
@@ -241,4 +248,21 @@ bool Context::parseHeader(qinmo::StringView sv)
     request_.getHeaders().add(name, value);
 }
 
+
+
+bool Context::verifyHeader()
+{
+    return true;
+
+    // Headers& headers = request_.getHeaders();
+
+    // qinmo::StringView sv;
+    // if (headers.has("context-length") && !headers.getSingle("context-length", sv))
+    //     return false;
+
+    // if (headers.has("context_length"))
+    // {
+    //     ;
+    // }
+}
 } // namespace qinmo::net::http

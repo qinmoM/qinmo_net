@@ -12,6 +12,7 @@ class Response;
 /// @brief http request handle callback, make a corresponding response
 using HttpFunc = std::function<void(const Request&, Response&)>;
 
+
 class Server
 {
 public:

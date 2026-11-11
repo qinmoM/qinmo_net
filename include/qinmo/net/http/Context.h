@@ -34,6 +34,9 @@ private:
     bool parseRequestLine(qinmo::StringView sv);
     bool parseHeader(qinmo::StringView sv);
 
+    /// @brief verify whether the headers is valid
+    bool verifyHeader();
+
     Request request_;
     ContextState state_;
 };

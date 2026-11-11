@@ -26,14 +26,10 @@ Server::Server(EventLoop* loop, const InetAddr& listenAddr, unsigned int numThre
         [this](const Request& request, Response& response)
         {
             //;
-
         };
 }
 
-Server::~Server()
-{
-    ;
-}
+Server::~Server() { }
 
 
 
@@ -56,7 +52,7 @@ void Server::onMessage(const RTcpConnPtr& conn, PacketBuffer& buffer, Timestamp 
 
     if (!context.parse(buffer))
     {
-        //
+        conn->send("HTTP/1.1 404 Bad Request\r\n\r\n");
         conn->shutdown();
     }
 
