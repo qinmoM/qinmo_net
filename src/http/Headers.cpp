@@ -31,6 +31,12 @@ bool Headers::isTokenChar(char c)
     }
 }
 
+bool Headers::isValidValue(unsigned char c)
+{
+    return c == '\t' || c >= 0x20 && c != 0x7f;
+}
+
+
 
 bool Headers::has(qinmo::StringView name) const
 {
@@ -92,7 +98,7 @@ void Headers::add(qinmo::StringView name, qinmo::StringView value)
         c = qinmo::toLower(c);
 
     position_[n].push_back(headers_.size());
-    headers_.emplace_back(n, v);
+    headers_.emplace_back(std::string(name.data(), name.size()), v);
 }
 
 } // namespace qinmo::net::http

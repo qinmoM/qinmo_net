@@ -8,7 +8,8 @@ namespace qinmo::net::http
 {
 
 class Response;
-    
+
+/// @brief Contain-Only, skip validity check
 class Headers
 {
 public:
@@ -16,6 +17,7 @@ public:
 
 
     static bool isTokenChar(char c);
+    static bool isValidValue(unsigned char c);
 
 public:
     /// @brief check whether name exists
@@ -33,5 +35,6 @@ public:
 private:
     HeadersType headers_;
     std::unordered_map<std::string, std::vector<std::size_t>> position_;
+
 };
 } // qinmo::net::http
