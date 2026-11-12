@@ -2,6 +2,7 @@
 
 #include "qinmo/tool/StringView.h"
 #include <vector>
+#include <unordered_map>
 
 namespace qinmo::net::http
 {
@@ -31,5 +32,6 @@ public:
 
 private:
     HeadersType headers_;
+    std::unordered_map<std::string, std::vector<std::size_t>> position_;
 };
 } // qinmo::net::http
