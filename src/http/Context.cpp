@@ -5,15 +5,15 @@
 namespace qinmo::net::http
 {
 
-Context::Context()
-{
-    ;
-}
+// Context::Context()
+// {
+//     ;
+// }
 
-Context::~Context()
-{
-    ;
-}
+// Context::~Context()
+// {
+//     ;
+// }
 
 
 
@@ -82,10 +82,33 @@ bool Context::parse(qinmo::net::PacketBuffer& buffer)
         }
         else if (ContextState::Body == state_)
         {
-            ;
+            // obtain the current buffer data
+            qinmo::StringView sv;
+            buffer.peekAll(sv);
+
+            if (sv.size() < length_)
+                break;
+
+            std::string s;
+            buffer.retrieveString(length_, s);
+            request_.setBody(qinmo::StringView(s.data(), s.size()));
+            state_ = ContextState::Complete;
+            break;
         }
     }
     return noError;
+}
+
+bool Context::isParsed() const
+{
+    return ContextState::Complete == state_;
+}
+
+void Context::reset()
+{
+    request_ = Request{};
+    state_ = ContextState::RequestLine;
+    length_ = 0;
 }
 
 
@@ -227,12 +250,14 @@ bool Context::parseHeader(qinmo::StringView sv)
     qinmo::StringView name = sv.subview(0, pos);
     qinmo::StringView value = sv.subview(pos + 1);
 
+    // -- name --
     for (const char c : name)
     {
         if (!Headers::isTokenChar(c))
             return false;
     }
 
+    // -- value --
     pos = value.find_first_not_of(" \t");
     if (qinmo::StringView::npos == pos)
         pos = value.size();
@@ -245,24 +270,32 @@ bool Context::parseHeader(qinmo::StringView sv)
         value.remove_suffix(value.size() - pos - 1);
     }
 
+    for (const char c : value)
+    {
+        if (!Headers::isValidValue(static_cast<unsigned char>(c)))
+            return false;
+    }
+
     request_.getHeaders().add(name, value);
+    return true;
 }
 
 
 
 bool Context::verifyHeader()
 {
+    Headers& headers = request_.getHeaders();
+
+    qinmo::StringView sv;
+    bool hasLength = headers.has("context-length");
+    if (!hasLength)
+        return true;
+
+    if (!headers.getSingle("context-length", sv))
+        return false;
+
+    length_ = std::stoul(std::string(sv.data(), sv.size()));
+    // currLength_ = 0;
     return true;
-
-    // Headers& headers = request_.getHeaders();
-
-    // qinmo::StringView sv;
-    // if (headers.has("context-length") && !headers.getSingle("context-length", sv))
-    //     return false;
-
-    // if (headers.has("context_length"))
-    // {
-    //     ;
-    // }
 }
 } // namespace qinmo::net::http

@@ -38,7 +38,9 @@ private:
     bool verifyHeader();
 
     Request request_;
-    ContextState state_;
+    ContextState state_ = ContextState::RequestLine;
+    std::size_t length_ = 0;
+    // std::size_t currLength_ = 0;
 };
 } // namespace http
 } // namespace qinmo::net
