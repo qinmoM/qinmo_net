@@ -4,7 +4,7 @@
 namespace qinmo::net::http
 {
 
-Server::Server(EventLoop* loop, const InetAddr& listenAddr, unsigned int numThread = 0, bool reusePort = false)
+Server::Server(EventLoop* loop, const InetAddr& listenAddr, unsigned int numThread, bool reusePort)
     : server_(loop, listenAddr, numThread, reusePort)
 {
     server_.setConnectFunc(
@@ -58,7 +58,8 @@ void Server::onMessage(const RTcpConnPtr& conn, PacketBuffer& buffer, Timestamp 
 
     if (context.isParsed())
     {
-        // 
+        conn->send("HTTP/1.1 200 OK\r\n\r\n");
+        conn->shutdown();
         context.reset();
     }
 }

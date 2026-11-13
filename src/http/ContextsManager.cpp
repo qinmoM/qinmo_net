@@ -5,6 +5,8 @@
 namespace qinmo::net::http
 {
 
+thread_local std::unordered_map<ContextsManager::TcpConnect*, Context> ContextsManager::contexts_;
+
 void ContextsManager::add(TcpConnect* ptr)
 {
     contexts_.insert({ ptr, Context{ } });
