@@ -58,7 +58,7 @@ After obtaining the code, go back to your project root directory and run CMakeLi
 
 ```shell
 mkdir build && cd build
-cmake .. # -DQINMO_LOG_PATH="log output path" -DQINMO_LOG_LEVEL=0~5 # output level: 0:trace - 5:fatal
+cmake ..
 make
 ```
 
@@ -98,6 +98,13 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE
         qinmo_net
 )
+
+# Logs in qinmo_net need to be specified manually if you want to display them.
+# target_compile_definitions(qinmo_net
+#     PRIVATE
+#         # QINMO_LOG_LEVEL=0
+#         # QINMO_LOG_OUTPUT_MODEL=1
+# )
 ```
 
 ---  
