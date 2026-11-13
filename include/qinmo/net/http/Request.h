@@ -36,6 +36,9 @@ public:
 
     Headers& getHeaders();
 
+    void setBody(qinmo::StringView body);
+    qinmo::StringView getBody() const;
+
 private:
     Method method_ = Method::Unknown;
     std::string path_ = "";
@@ -43,6 +46,8 @@ private:
     Version version_ = Version::Unknown;
 
     Headers headers_;
+
+    std::string body_;
 
 };
 } // namespace qinmo::net::http
