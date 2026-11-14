@@ -85,7 +85,7 @@ public:
     void timerCancel(TimerID id);
 
     void send(const std::string& str);
-    void send(PacketBuffer& buf);
+    void send(const PacketBuffer& buf);
 
     void setTcpNoDelay(bool enable);
     /// @note do nothing when in write event
@@ -109,6 +109,8 @@ private:
         Disconnecting
     };
     qinmo::StringView getStateStr() const;
+    void sendInLoop(qinmo::StringView sv);
+    void sendInLoop(const PacketBuffer& buf);
 
     void handleRead(Timestamp time);
     void handleWrite();
@@ -141,6 +143,5 @@ private:
 
 };
 
-;
 } // namespace net
 } // namespace qinmo

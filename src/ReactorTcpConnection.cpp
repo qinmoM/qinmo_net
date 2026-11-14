@@ -164,7 +164,44 @@ void ReactorTcpConnection::timerCancel(TimerID id)
     return loop_->timerCancel(id);
 }
 
+
 void ReactorTcpConnection::send(const std::string& str)
+{
+    if (loop_->isInCurrentThread())
+    {
+        sendInLoop(qinmo::StringView(str.data(), str.size()));
+    }
+    else
+    {
+        auto ptr = shared_from_this();
+        loop_->runInLoop(
+            [ptr, str]()
+            {
+                ptr->sendInLoop(qinmo::StringView(str.data(), str.size()));
+            }
+        );
+    }
+}
+
+void ReactorTcpConnection::send(const PacketBuffer& buf)
+{
+    if (loop_->isInCurrentThread())
+    {
+        sendInLoop(buf);
+    }
+    else
+    {
+        auto ptr = shared_from_this();
+        loop_->runInLoop(
+            [ptr, buf]()
+            {
+                ptr->sendInLoop(buf);
+            }
+        );
+    }
+}
+
+void ReactorTcpConnection::sendInLoop(qinmo::StringView sv)
 {
     if (RTcpConnState::Connected != state_)
         return;
@@ -175,10 +212,10 @@ void ReactorTcpConnection::send(const std::string& str)
     // try writing directly when nothing in buffer
     if (!channel_.isWrite() && 0 == oldSize)
     {
-        size_t len = detail::send(sock_.getfd(), str.data(), str.size());
-        if (len > 0)
+        size_t len = detail::send(sock_.getfd(), sv.data(), sv.size());
+        if (len >= 0)
         {
-            if (len == str.size() && writeCompleteFunc_)
+            if (len == sv.size() && writeCompleteFunc_)
             {
                 RTcpConnPtr self = shared_from_this();
                 loop_->queueInLoop(
@@ -203,7 +240,7 @@ void ReactorTcpConnection::send(const std::string& str)
     }
 
     // determine whether call highWaterMark
-    int newSize = oldSize + str.size() - currIndex;
+    int newSize = oldSize + sv.size() - currIndex;
     if (highWaterMarkFunc_ && waterMark_ > oldSize && waterMark_ <= newSize)
     {
         RTcpConnPtr self = shared_from_this();
@@ -215,13 +252,14 @@ void ReactorTcpConnection::send(const std::string& str)
         );
     }
 
-    outputBuffer_.appendString(str.substr(currIndex, str.size() - currIndex));
+    qinmo::StringView temp = sv.substr(currIndex, sv.size() - currIndex);
+    outputBuffer_.appendString(std::string(temp.data(), temp.size()));
 
     if (!channel_.isWrite())
         channel_.enableWrite();
 }
 
-void ReactorTcpConnection::send(PacketBuffer& buf)
+void ReactorTcpConnection::sendInLoop(const PacketBuffer& buf)
 {
     if (RTcpConnState::Connected != state_)
         return;
