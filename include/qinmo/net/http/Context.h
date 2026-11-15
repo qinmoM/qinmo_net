@@ -25,14 +25,6 @@ using MessageFunc = std::function<void(Context&, qinmo::StringView)>;
 class Context
 {
 public:
-    enum class ContextState
-    {
-        RequestLine,
-        Headers,
-        Body,
-        Complete
-    };
-
     enum class ServerHandle
     {
         None,
@@ -41,7 +33,32 @@ public:
         Reset
     };
 
+    enum class BodyFrame
+    {
+        None,
+        Length,
+        Chunked
+    };
+
     friend class Server;
+
+public:
+    Method reqMethod() const;
+    Version reqVersion() const;
+    qinmo::StringView reqHeader(qinmo::StringView name) const;
+    qinmo::StringView reqBody() const;
+
+
+    bool resSetVersion(Version version);
+    bool resSetStateCode(StateCode stateCode);
+    bool resSetStateMessage(qinmo::StringView sv);
+    bool resSetHeader(qinmo::StringView name, qinmo::StringView value);
+
+    bool resSend(qinmo::StringView sv);
+    bool resEnd();
+
+public:
+    Context(bool isSaveBody = true);
 
 private:
     ServerHandle parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, MessageFunc& message, ContextFunc& complete);
@@ -59,12 +76,12 @@ private:
     bool verifyHeader();
 
     Request request_;
-    ContextState state_ = ContextState::RequestLine;
-    std::size_t length_ = 0;
-    std::size_t currLength_ = 0;
+    Response response_;
+    qinmo::net::RTcpConnPtr conn_;
 
-
-    bool isWaterMark = false;
+    BodyFrame bodyFrame_ = BodyFrame::None;
+    const bool isSaveBody_;
+    bool isWaterMark_ = false;
 };
 } // namespace http
 } // namespace qinmo::net
