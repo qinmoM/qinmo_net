@@ -79,14 +79,14 @@ void Server::connect(const RTcpConnPtr& conn)
         waterMark_,
         [&context](const RTcpConnPtr& conn, std::size_t size) -> void
         {
-            context.isWaterMark = true;
+            context.isWaterMark_ = true;
         }
     );
     conn->setWriteCompleteFunc(
         [this, &context](const RTcpConnPtr& conn) -> void
         {
-            context.isWaterMark = false;
-            while (!context.isWaterMark)
+            context.isWaterMark_ = false;
+            while (!context.isWaterMark_)
                 bodyFunc_(context);
         }
     );
