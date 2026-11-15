@@ -6,11 +6,14 @@
 namespace qinmo::net::http
 {
 
-class Request;
-class Response;
 
-/// @brief http request handle callback, make a corresponding response
-using HttpFunc = std::function<void(const Request&, Response&)>;
+class Context;
+
+using RequestHeadersFunc = std::function<void(Context&)>;
+using RequestMessageFunc = std::function<void(Context&, qinmo::StringView)>;
+using RequestCompleteFunc = std::function<void(Context&)>;
+using ResponseBodyFunc = std::function<void(Context&)>;
+
 
 
 class Server
@@ -28,7 +31,14 @@ public:
 public:
     void start();
 
-    void setHttpFunc(HttpFunc func);
+    /// @note Triggered when client's headers has been receivedddd
+    void setHeadersFunc(RequestHeadersFunc func);
+    /// @note Triggered when client sends body message
+    void setMessageFunc(RequestMessageFunc func);
+    /// @note Triggered when client completes sending the message
+    void setCompleteFunc(RequestCompleteFunc func);
+    /// @note Triggered when client headers has been received and buffer is ready
+    void setResponseFunc();
 
 private:
     void onMessage(const RTcpConnPtr& conn, PacketBuffer& buffer, Timestamp timestamp);
@@ -37,8 +47,12 @@ private:
 
 private:
     ReactorTcpServer server_;
-    HttpFunc func_;
     ContextsManager contexts_;
+
+    RequestHeadersFunc headersFunc_;
+    RequestMessageFunc messageFunc_;
+    RequestCompleteFunc completeFunc_;
+    ResponseBodyFunc bodyFunc_;
 
 };
 } // namespace qinmo::net::http
