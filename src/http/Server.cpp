@@ -22,11 +22,6 @@ Server::Server(EventLoop* loop, const InetAddr& listenAddr, unsigned int numThre
         {
             onMessage(conn, buffer, timestamp);
         });
-    func_ = 
-        [this](const Request& request, Response& response)
-        {
-            //;
-        };
 }
 
 Server::~Server() { }
@@ -39,9 +34,24 @@ void Server::start()
     server_.start();
 }
 
-void Server::setHttpFunc(HttpFunc func)
+void Server::setHeadersFunc(RequestHeadersFunc func)
 {
-    func_ = std::move(func);
+    headersFunc_ = std::move(func);
+}
+
+void Server::setMessageFunc(RequestMessageFunc func)
+{
+    messageFunc_ = std::move(func);
+}
+
+void Server::setCompleteFunc(RequestCompleteFunc func)
+{
+    completeFunc_ = std::move(func);
+}
+
+void Server::setResponseFunc(ResponseBodyFunc func)
+{
+    bodyFunc_ = std::move(func);
 }
 
 
@@ -50,23 +60,36 @@ void Server::onMessage(const RTcpConnPtr& conn, PacketBuffer& buffer, Timestamp 
 {
     Context& context = contexts_.getContext(conn.get());
 
-    if (!context.parse(buffer))
-    {
-        conn->send("HTTP/1.1 404 Bad Request\r\n\r\n");
-        conn->shutdown();
-    }
+    Context::ServerHandle handle = context.parse(buffer, headersFunc_, messageFunc_, completeFunc_);
 
-    if (context.isParsed())
-    {
-        conn->send("HTTP/1.1 200 OK\r\n\r\n");
+    if (Context::ServerHandle::Close == handle)
+        conn->close();
+    else if (Context::ServerHandle::Shutdown == handle)
         conn->shutdown();
+    else if (Context::ServerHandle::Reset == handle)
         context.reset();
-    }
 }
 
 void Server::connect(const RTcpConnPtr& conn)
 {
     contexts_.add(conn.get());
+    Context& context = contexts_.getContext(conn.get());
+
+    conn->setHighWaterMarkFunc(
+        waterMark_,
+        [&context](const RTcpConnPtr& conn, std::size_t size) -> void
+        {
+            context.isWaterMark = true;
+        }
+    );
+    conn->setWriteCompleteFunc(
+        [this, &context](const RTcpConnPtr& conn) -> void
+        {
+            context.isWaterMark = false;
+            while (!context.isWaterMark)
+                bodyFunc_(context);
+        }
+    );
 }
 
 void Server::disconnect(const RTcpConnPtr& conn)

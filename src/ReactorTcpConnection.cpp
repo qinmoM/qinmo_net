@@ -244,7 +244,7 @@ void ReactorTcpConnection::sendInLoop(qinmo::StringView sv)
     }
 
     // determine whether call highWaterMark
-    int newSize = oldSize + sv.size() - currIndex;
+    std::size_t newSize = oldSize + sv.size() - currIndex;
     if (highWaterMarkFunc_ && waterMark_ > oldSize && waterMark_ <= newSize)
     {
         RTcpConnPtr self = shared_from_this();

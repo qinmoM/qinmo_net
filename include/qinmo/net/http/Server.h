@@ -1,6 +1,5 @@
 #pragma once
 
-#include "qinmo/net/ReactorTcpServer.h"
 #include "qinmo/net/http/ContextsManager.h"
 
 namespace qinmo::net::http
@@ -9,10 +8,10 @@ namespace qinmo::net::http
 
 class Context;
 
-using RequestHeadersFunc = std::function<void(Context&)>;
-using RequestMessageFunc = std::function<void(Context&, qinmo::StringView)>;
-using RequestCompleteFunc = std::function<void(Context&)>;
-using ResponseBodyFunc = std::function<void(Context&)>;
+using RequestHeadersFunc = ContextFunc;
+using RequestMessageFunc = MessageFunc;
+using RequestCompleteFunc = ContextFunc;
+using ResponseBodyFunc = ContextFunc;
 
 
 
@@ -38,7 +37,7 @@ public:
     /// @note Triggered when client completes sending the message
     void setCompleteFunc(RequestCompleteFunc func);
     /// @note Triggered when client headers has been received and buffer is ready
-    void setResponseFunc();
+    void setResponseFunc(ResponseBodyFunc func);
 
 private:
     void onMessage(const RTcpConnPtr& conn, PacketBuffer& buffer, Timestamp timestamp);
@@ -53,6 +52,8 @@ private:
     RequestMessageFunc messageFunc_;
     RequestCompleteFunc completeFunc_;
     ResponseBodyFunc bodyFunc_;
+
+    std::size_t waterMark_ = 1024 * 1024 * 1;
 
 };
 } // namespace qinmo::net::http
