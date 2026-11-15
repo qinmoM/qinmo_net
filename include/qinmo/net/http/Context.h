@@ -43,12 +43,18 @@ public:
     friend class Server;
 
 public:
+/*
+        request-related
+*/
     Method reqMethod() const;
     Version reqVersion() const;
-    qinmo::StringView reqHeader(qinmo::StringView name) const;
+    std::vector<qinmo::StringView> reqHeader(qinmo::StringView name) const;
     qinmo::StringView reqBody() const;
 
 
+/*
+        response-related
+*/
     bool resSetVersion(Version version);
     bool resSetStateCode(StateCode stateCode);
     bool resSetStateMessage(qinmo::StringView sv);
@@ -58,7 +64,7 @@ public:
     bool resEnd();
 
 public:
-    Context(bool isSaveBody = true);
+    Context(qinmo::net::RTcpConnPtr conn, bool isSaveBody = true);
 
 private:
     ServerHandle parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, MessageFunc& message, ContextFunc& complete);
@@ -67,6 +73,10 @@ private:
     void reset();
 
 private:
+    bool isValid(Method method) const;
+    bool isValid(Version version) const;
+    bool isValid(StateCode stateCode) const;
+
     /// @return false if parsing error
     /// @note strict matching
     bool parseRequestLine(qinmo::StringView sv);

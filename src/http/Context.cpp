@@ -5,6 +5,82 @@
 namespace qinmo::net::http
 {
 
+
+Method Context::reqMethod() const
+{
+    return request_.method_;
+}
+
+Version Context::reqVersion() const
+{
+    return request_.version_;
+}
+
+std::vector<qinmo::StringView> Context::reqHeader(qinmo::StringView name) const
+{
+    return request_.headers_.getAll(name);
+}
+
+qinmo::StringView Context::reqBody() const
+{
+    return qinmo::StringView(request_.body_.data(), request_.body_.size());
+}
+
+
+
+bool Context::resSetVersion(Version version)
+{
+    if (Response::State::Init != response_.state_ || !isValid(version))
+        return false;
+
+    response_.version_ = version;
+    return true;
+}
+
+bool Context::resSetStateCode(StateCode stateCode)
+{
+    if (Response::State::Init != response_.state_ || !isValid(stateCode))
+        return false;
+
+    response_.stateCode_ = stateCode;
+    return true;
+}
+
+bool Context::resSetStateMessage(qinmo::StringView sv)
+{
+    if (Response::State::Init != response_.state_)
+        return false;
+
+    response_.stateMessage_ = std::string(sv.data(), sv.size());
+    return true;
+}
+
+bool Context::resSetHeader(qinmo::StringView name, qinmo::StringView value)
+{
+    if (Response::State::Init != response_.state_)
+        return false;
+
+    response_.headers_.add(name, value);
+    return true;
+}
+
+
+bool Context::resSend(qinmo::StringView sv)
+{
+    ;
+}
+
+bool Context::resEnd()
+{
+    if ()
+    {
+        ;
+    }
+}
+
+
+
+
 // Context::Context()
 // { }
 
@@ -20,7 +96,7 @@ Context::ServerHandle Context::parse(qinmo::net::PacketBuffer& buffer, ContextFu
     ServerHandle handle = ServerHandle::None;
     while (true)
     {
-        if (ContextState::RequestLine == state_)
+        if (Request::ParseState::RequestLine == request_.state_)
         {
             // obtain the current buffer data
             qinmo::StringView sv;
@@ -43,9 +119,9 @@ Context::ServerHandle Context::parse(qinmo::net::PacketBuffer& buffer, ContextFu
             QINMO_DEBUG("Parse request-line successful: ", sv);
             std::string s;
             buffer.retrieveString(pos + 2, s);
-            state_ = ContextState::Headers;
+            request_.state_ = Request::ParseState::Headers;
         }
-        else if (ContextState::Headers == state_)
+        else if (Request::ParseState::Headers == request_.state_)
         {
             // obtain the current buffer data
             qinmo::StringView sv;
@@ -78,23 +154,39 @@ Context::ServerHandle Context::parse(qinmo::net::PacketBuffer& buffer, ContextFu
                     break;
                 }
 
-                state_ = ContextState::Body;
+                request_.state_ = Request::ParseState::Body;
 
                 if (headers)
                     headers(*this);
             }
         }
-        else if (ContextState::Body == state_)
+        else if (Request::ParseState::Body == request_.state_)
         {
             // obtain the current buffer data
             qinmo::StringView sv;
             buffer.peekAll(sv);
-            std::size_t num = std::min(sv.size(), length_ - currLength_);
+            std::size_t num = std::min(sv.size(), request_.length_ - request_.currLength_);
 
             std::string s;
             buffer.retrieveString(num, s);
-            request_.setBody(qinmo::StringView(s.data(), s.size()));
-            state_ = ContextState::Complete;
+            request_.currLength_ += num;
+            if (isSaveBody_)
+                request_.body_.append(s);
+
+            if (message)
+                message(*this, qinmo::StringView(s.data(), s.size()));
+
+            // complete body
+            if (request_.currLength_ == request_.length_)
+            {
+                request_.state_ = Request::ParseState::Complete;
+
+                if (complete)
+                    complete(*this);
+            }
+        }
+        else
+        {
             break;
         }
     }
@@ -103,16 +195,56 @@ Context::ServerHandle Context::parse(qinmo::net::PacketBuffer& buffer, ContextFu
 
 void Context::reset()
 {
-    request_ = Request{};
-    state_ = ContextState::RequestLine;
-    length_ = 0;
+    // request_ = Request{};
+    // request_.state_ = Request::ParseState::RequestLine;
+    // request_.length_ = 0;
 }
+
+
+bool Context::isValid(Method method) const
+{
+    switch (method)
+    {
+        case Method::Get:
+        case Method::Head:
+        case Method::Post:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool Context::isValid(Version version) const
+{
+    switch (version)
+    {
+        case Version::Http10:
+        case Version::Http11:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool Context::isValid(StateCode stateCode) const
+{
+    switch (stateCode)
+    {
+        case StateCode::Code200:
+        case StateCode::Code400:
+        case StateCode::Code404:
+            return true;
+        default:
+            return false;
+    }
+}
+
 
 
 
 bool Context::parseRequestLine(qinmo::StringView sv)
 {
-    Request::Method method = Request::Method::Unknown;
+    Method method = Method::Unknown;
     qinmo::StringView path = "";
     qinmo::StringView query = "";
     Version version = Version::Unknown;
@@ -129,13 +261,13 @@ bool Context::parseRequestLine(qinmo::StringView sv)
 
     // parse method
     if ("GET" == temp)
-        method = Request::Method::Get;
+        method = Method::Get;
     else if ("POST" == temp)
-        method = Request::Method::Post;
+        method = Method::Post;
     else if ("HEAD" == temp)
-        method = Request::Method::Head;
+        method = Method::Head;
 
-    if (method == Request::Method::Unknown)
+    if (method == Method::Unknown)
         return false;
 
 
@@ -174,10 +306,10 @@ bool Context::parseRequestLine(qinmo::StringView sv)
     if (version == Version::Unknown)
         return false;
 
-    request_.setMethod(method);
-    request_.setPath(path);
-    request_.setQuery(query);
-    request_.setVersion(version);
+    request_.method_;
+    request_.path_;
+    request_.query_;
+    request_.version_;
     return true;
 }
 
@@ -216,7 +348,7 @@ bool Context::parseHeader(qinmo::StringView sv)
             return false;
     }
 
-    request_.getHeaders().add(name, value);
+    request_.headers_.add(name, value);
     return true;
 }
 
@@ -224,7 +356,7 @@ bool Context::parseHeader(qinmo::StringView sv)
 
 bool Context::verifyHeader()
 {
-    Headers& headers = request_.getHeaders();
+    Headers& headers = request_.headers_;
 
     qinmo::StringView sv;
     bool hasLength = headers.has("context-length");
@@ -234,7 +366,7 @@ bool Context::verifyHeader()
     if (!headers.getSingle("context-length", sv))
         return false;
 
-    length_ = std::stoul(std::string(sv.data(), sv.size()));
+    request_.length_ = std::stoul(std::string(sv.data(), sv.size()));
     // currLength_ = 0;
     return true;
 }
