@@ -44,6 +44,12 @@ public:
 
 public:
 /*
+        server-related
+*/
+    void handle(ServerHandle handle);
+
+
+/*
         request-related
 */
     Method reqMethod() const;
@@ -58,16 +64,20 @@ public:
     bool resSetVersion(Version version);
     bool resSetStateCode(StateCode stateCode);
     bool resSetStateMessage(qinmo::StringView sv);
+    /// @note the following names are not accepted:
+    /// @note - `Content-Length`/`Transfer-Encoding` : use `resSetLength()` instead
     bool resSetHeader(qinmo::StringView name, qinmo::StringView value);
 
     bool resSend(qinmo::StringView sv);
     bool resEnd();
 
+    bool resSetLength(std::size_t num);
+
 public:
     Context(qinmo::net::RTcpConnPtr conn, bool isSaveBody = true);
 
 private:
-    ServerHandle parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, MessageFunc& message, ContextFunc& complete);
+    void parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, MessageFunc& message, ContextFunc& complete);
     // bool isParsed() const;
 
     void reset();
@@ -90,6 +100,7 @@ private:
     qinmo::net::RTcpConnPtr conn_;
 
     BodyFrame bodyFrame_ = BodyFrame::None;
+    ServerHandle handle_ = ServerHandle::None;
     const bool isSaveBody_;
     bool isWaterMark_ = false;
 };

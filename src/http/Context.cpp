@@ -67,15 +67,56 @@ bool Context::resSetHeader(qinmo::StringView name, qinmo::StringView value)
 
 bool Context::resSend(qinmo::StringView sv)
 {
-    ;
+    if (Response::State::Complete == response_.state_
+        || Response::State::Error == response_.state_)
+        return false;
+
+    if (Response::State::HeadersSent == response_.state_)
+    {
+        ;
+    }
+    else if (Response::State::Init == response_.state_)
+    {
+        if (!isValid(response_.version_))
+            response_.version_ = request_.version_;
+        if (!isValid(response_.stateCode_))
+            response_.stateCode_ = StateCode::Code200;
+
+        if (sv.size() > response_.length_)
+        {
+            handle(ServerHandle::Close);
+            response_.state_ = Response::State::Error;
+            return false;
+        }
+
+        response_.headers_.add("Content-Length", std::to_string(response_.length_));
+        conn_->send(formatHeader());
+
+        std::string str(sv.data(), sv.size());
+        conn_->send(str);
+        response_.state_ = Response::State::HeadersSent;
+
+        response_.currLength_ += sv.size();
+        if (response_.currLength_ == response_.length_)
+            response_.state_ = Response::State::Complete;
+    }
 }
 
 bool Context::resEnd()
 {
-    if ()
-    {
-        ;
-    }
+    // if ()
+    // {
+    //     ;
+    // }
+}
+
+bool Context::resSetLength(std::size_t num)
+{
+    if (Response::State::Init != response_.state_)
+        return false;
+
+    response_.length_ = num;
+    return true;
 }
 
 
