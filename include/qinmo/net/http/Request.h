@@ -1,53 +1,32 @@
 #pragma once
 
+#include "qinmo/net/http/Types.h"
 #include "qinmo/net/http/Headers.h"
 
 namespace qinmo::net::http
 {
 
-class Request
+struct Request
 {
-public:
-    enum class Method
+    enum class ParseState
     {
-        Unknown,
-        Get,
-        Post,
-        Head
+        RequestLine,
+        Headers,
+        Body,
+        Complete
     };
 
-    enum class Version
-    {
-        Unknown,
-        Http10,
-        Http11
-    };
 
-public:
-    Method getMethod() const;
-    std::string getPath() const;
-    std::string getQuery() const;
-    Version getVersion() const;
-
-    void setMethod(Method method);
-    void setPath(qinmo::StringView path);
-    void setQuery(qinmo::StringView query);
-    void setVersion(Version version);
-
-    Headers& getHeaders();
-
-    void setBody(qinmo::StringView body);
-    qinmo::StringView getBody() const;
-
-private:
     Method method_ = Method::Unknown;
     std::string path_ = "";
     std::string query_ = "";
     Version version_ = Version::Unknown;
 
     Headers headers_;
-
     std::string body_;
 
+    ParseState state_ = ParseState::RequestLine;
+    std::size_t length_ = 0;
+    std::size_t currLength_ = 0;
 };
 } // namespace qinmo::net::http
