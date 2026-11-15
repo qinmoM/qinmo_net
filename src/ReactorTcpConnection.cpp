@@ -185,17 +185,21 @@ void ReactorTcpConnection::send(const std::string& str)
 
 void ReactorTcpConnection::send(const PacketBuffer& buf)
 {
+    qinmo::StringView sv;
+    buf.peekAll(sv);
     if (loop_->isInCurrentThread())
     {
-        sendInLoop(buf);
+        sendInLoop(sv);
     }
     else
     {
         auto ptr = shared_from_this();
+        std::string str(sv.data(), sv.size());
         loop_->runInLoop(
-            [ptr, buf]()
+            [ptr, str]()
             {
-                ptr->sendInLoop(buf);
+                qinmo::StringView sv(str.data(), str.size());
+                ptr->sendInLoop(sv);
             }
         );
     }
@@ -259,32 +263,6 @@ void ReactorTcpConnection::sendInLoop(qinmo::StringView sv)
         channel_.enableWrite();
 }
 
-void ReactorTcpConnection::sendInLoop(const PacketBuffer& buf)
-{
-    if (RTcpConnState::Connected != state_)
-        return;
-
-    std::string str;
-    if (!buf.headGetString(0, buf.getHeadSize(), str))
-    {
-        // it definitely won't happen
-        QINMO_ERROR("PacketBuffer.send(buf) error. fd=", sock_.getfd());
-        return;
-    }
-    outputBuffer_.appendString(str);
-
-    qinmo::StringView sv;
-    if (!buf.peekAll(sv))
-    {
-        // it definitely won't happen
-        QINMO_ERROR("PacketBuffer.send(buf) error. fd=", sock_.getfd());
-        return;
-    }
-    outputBuffer_.appendString(std::string(sv.data(), sv.size()));
-
-    if (!channel_.isWrite())
-        channel_.enableWrite();
-}
 
 
 void ReactorTcpConnection::setTcpNoDelay(bool enable)

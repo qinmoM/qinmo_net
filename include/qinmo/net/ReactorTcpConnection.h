@@ -110,7 +110,6 @@ private:
     };
     qinmo::StringView getStateStr() const;
     void sendInLoop(qinmo::StringView sv);
-    void sendInLoop(const PacketBuffer& buf);
 
     void handleRead(Timestamp time);
     void handleWrite();
