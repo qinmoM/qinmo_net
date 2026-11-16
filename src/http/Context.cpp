@@ -161,6 +161,9 @@ bool Context::resSend(qinmo::StringView sv)
             std::string str(std::to_string(sv.size()) + "\r\n");
             str += (std::string() + std::string(sv.data(), sv.size()) + "\r\n");
             conn_->send(str);
+
+            // modify state
+            response_.state_ = Response::State::HeadersSent;
         }
     }
 
@@ -172,17 +175,29 @@ bool Context::resEnd()
     if (Response::State::HeadersSent != response_.state_)
         return false;
 
-    if (response_.currLength_ != response_.length_)
+    if (BodyFrame::Length == response_.frame_)
     {
-        serHandle(ServerHandle::Close);
-        response_.state_ = Response::State::Error;
-        return false;
+        // check whether the length is not equal to specified value
+        if (response_.currLength_ != response_.length_)
+        {
+            serHandle(ServerHandle::Close);
+            response_.state_ = Response::State::Error;
+            return false;
+        }
+    }
+    else if (BodyFrame::Chunked == response_.frame_)
+    {
+        // send terminator to client
+        conn_->send(std::string("0\r\n\r\n", 5));
     }
 
+    // modify state
     response_.state_ = Response::State::Complete;
-    if (response_.isKeepAlive_ && Request::ParseState::Complete == request_.state_)
+    if (Request::ParseState::Complete == request_.state_)
     {
-        if (ServerHandle::None == handle_ || ServerHandle::Reset == handle_)
+        if (response_.isKeepAlive_)
+            serHandle(ServerHandle::Reset);
+        else
             serHandle(ServerHandle::Shutdown);
     }
 
