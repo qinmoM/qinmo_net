@@ -26,6 +26,7 @@ struct Request
     Headers headers_;
     std::string body_;
 
+    BodyFrame frame_ = BodyFrame::None;
     ParseState state_ = ParseState::RequestLine;
     std::size_t length_ = 0;
     std::size_t currLength_ = 0;

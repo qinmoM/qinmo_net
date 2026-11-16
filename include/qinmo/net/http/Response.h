@@ -21,9 +21,9 @@ struct Response
     std::string stateMessage_;
 
     Headers headers_;
-    std::string body_;
 
     State state_ = State::Init;
+    BodyFrame frame_ = BodyFrame::None;
     std::size_t length_ = 0;
     std::size_t currLength_ = 0;
     bool isKeepAlive_ = false;

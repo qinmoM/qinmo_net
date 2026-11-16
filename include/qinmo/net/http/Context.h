@@ -33,13 +33,6 @@ public:
         Reset
     };
 
-    enum class BodyFrame
-    {
-        None,
-        Length,
-        Chunked
-    };
-
     friend class Server;
 
 public:
@@ -64,15 +57,20 @@ public:
     bool resSetVersion(Version version);
     bool resSetStateCode(StateCode stateCode);
     bool resSetStateMessage(qinmo::StringView sv);
-    /// @note the following names are not accepted:
+    /// @note the following names are disallowed:
     /// @note - `Content-Length`/`Transfer-Encoding` : use `resSetLength()` instead
     /// @note - `Connection` : use `resSetKeepAlive()` instead
+    /// @return return false if the  name or value contains invalid characters  or  any disallowed name
     bool resSetHeader(qinmo::StringView name, qinmo::StringView value);
 
+    /// @note do not send 0-byte data, Use `resEnd()` to send the terminator in chunked mode
+    /// @return
     bool resSend(qinmo::StringView sv);
+    /// @brief used to send the terminator in chunked mode; check whether the length is sufficient in length mode
     bool resEnd();
 
     bool resSetLength(std::size_t num);
+    bool resSetChunked();
     bool resSetKeepAlive(bool isKeepAlive = true);
 
 public:
@@ -104,7 +102,6 @@ private:
     Response response_;
     qinmo::net::RTcpConnPtr conn_;
 
-    BodyFrame bodyFrame_ = BodyFrame::None;
     ServerHandle handle_ = ServerHandle::None;
     const bool isSaveBody_;
     bool isWaterMark_ = false;

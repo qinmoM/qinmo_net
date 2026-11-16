@@ -82,50 +82,86 @@ bool Context::resSetHeader(qinmo::StringView name, qinmo::StringView value)
 bool Context::resSend(qinmo::StringView sv)
 {
     if (Response::State::Complete == response_.state_
-        || Response::State::Error == response_.state_)
+        || Response::State::Error == response_.state_
+        || sv.empty())
         return false;
 
     if (Response::State::HeadersSent == response_.state_)
     {
-        if (sv.size() > response_.length_)
+        if (BodyFrame::Length == response_.frame_)
         {
-            serHandle(ServerHandle::Close);
-            response_.state_ = Response::State::Error;
-            return false;
+            // check whether the length is greater than specified value
+            if (sv.size() > response_.length_ - response_.currLength_)
+            {
+                serHandle(ServerHandle::Close);
+                response_.state_ = Response::State::Error;
+                return false;
+            }
+
+            // send body-pair
+            std::string str(sv.data(), sv.size());
+            conn_->send(str);
+
+            // modify state
+            response_.currLength_ += sv.size();
+            if (response_.currLength_ == response_.length_)
+                response_.state_ = Response::State::Complete;
         }
-
-        std::string str(sv.data(), sv.size());
-        conn_->send(str);
-
-        response_.currLength_ += sv.size();
-        if (response_.currLength_ == response_.length_)
-            response_.state_ = Response::State::Complete;
+        else if (BodyFrame::Chunked == response_.frame_)
+        {
+            // send response body-pair
+            std::string str(std::to_string(sv.size()) + "\r\n");
+            str += (std::string() + std::string(sv.data(), sv.size()) + "\r\n");
+            conn_->send(str);
+        }
     }
     else if (Response::State::Init == response_.state_)
     {
+        // fill default values
         if (!isValid(response_.version_))
             response_.version_ = request_.version_;
         if (!isValid(response_.stateCode_))
             response_.stateCode_ = StateCode::Code200;
+        if (BodyFrame::None == response_.frame_)
+            response_.frame_ = BodyFrame::Chunked;
 
-        if (sv.size() > response_.length_)
+        if (BodyFrame::Length == response_.frame_)
         {
-            serHandle(ServerHandle::Close);
-            response_.state_ = Response::State::Error;
-            return false;
+            // check whether it exceeds the specified byte-count
+            if (sv.size() > response_.length_)
+            {
+                serHandle(ServerHandle::Close);
+                response_.state_ = Response::State::Error;
+                return false;
+            }
+
+            // build and send response header
+            response_.headers_.add("Content-Length", std::to_string(response_.length_));
+            response_.headers_.add("Connection", (response_.isKeepAlive_ ? "keep-alive" : "close"));
+            conn_->send(formatHeader());
+
+            // send response body-pair
+            std::string str(sv.data(), sv.size());
+            conn_->send(str);
+
+            // modify state
+            response_.state_ = Response::State::HeadersSent;
+            response_.currLength_ += sv.size();
+            if (response_.currLength_ == response_.length_)
+                response_.state_ = Response::State::Complete;
         }
+        else if (BodyFrame::Chunked == response_.frame_)
+        {
+            // build and send response header
+            response_.headers_.add("Transfer-Encoding", "chunked");
+            response_.headers_.add("Connection", (response_.isKeepAlive_ ? "keep-alive" : "close"));
+            conn_->send(formatHeader());
 
-        response_.headers_.add("Content-Length", std::to_string(response_.length_));
-        response_.headers_.add("Connection", (response_.isKeepAlive_ ? "keep-alive" : "close"));
-        conn_->send(formatHeader());
-
-        std::string str(sv.data(), sv.size());
-        conn_->send(str);
-        response_.state_ = Response::State::HeadersSent;
-
-        response_.currLength_ += sv.size();
-        if (response_.currLength_ == response_.length_)
-            response_.state_ = Response::State::Complete;
+            // send response body-pair
+            std::string str(std::to_string(sv.size()) + "\r\n");
+            str += (std::string() + std::string(sv.data(), sv.size()) + "\r\n");
+            conn_->send(str);
+        }
     }
 
     return true;
@@ -158,7 +194,17 @@ bool Context::resSetLength(std::size_t num)
     if (Response::State::Init != response_.state_)
         return false;
 
+    response_.frame_ = BodyFrame::Length;
     response_.length_ = num;
+    return true;
+}
+
+bool Context::resSetChunked()
+{
+    if (Response::State::Init != response_.state_)
+        return false;
+
+    response_.frame_ = BodyFrame::Chunked;
     return true;
 }
 
@@ -290,7 +336,6 @@ void Context::reset()
     request_ = Request{};
     response_ = Response{};
     isWaterMark_ = false;
-    bodyFrame_ = BodyFrame::None;
     handle_ = ServerHandle::None;
 }
 

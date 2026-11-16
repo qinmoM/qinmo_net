@@ -28,4 +28,13 @@ enum class Method
     Head
 };
 
+
+
+enum class BodyFrame
+{
+    None,
+    Length,
+    Chunked
+};
+
 } // namespace qinmo::net::http
