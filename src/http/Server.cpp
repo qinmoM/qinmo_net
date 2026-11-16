@@ -60,7 +60,8 @@ void Server::onMessage(const RTcpConnPtr& conn, PacketBuffer& buffer, Timestamp 
 {
     Context& context = contexts_.getContext(conn.get());
 
-    Context::ServerHandle handle = context.parse(buffer, headersFunc_, messageFunc_, completeFunc_);
+    context.parse(buffer, headersFunc_, messageFunc_, completeFunc_);
+    Context::ServerHandle handle = context.handle_;
 
     if (Context::ServerHandle::Close == handle)
         conn->close();
@@ -87,7 +88,17 @@ void Server::connect(const RTcpConnPtr& conn)
         {
             context.isWaterMark_ = false;
             while (!context.isWaterMark_)
+            {
                 bodyFunc_(context);
+                Context::ServerHandle handle = context.handle_;
+
+                if (Context::ServerHandle::Close == handle)
+                    conn->close();
+                else if (Context::ServerHandle::Shutdown == handle)
+                    conn->shutdown();
+                else if (Context::ServerHandle::Reset == handle)
+                    context.reset();
+            }
         }
     );
 }

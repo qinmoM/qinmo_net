@@ -46,7 +46,7 @@ public:
 /*
         server-related
 */
-    void serhandle(ServerHandle handle);
+    void serHandle(ServerHandle handle);
 
 
 /*

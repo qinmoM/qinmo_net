@@ -75,7 +75,7 @@ bool Context::resSend(qinmo::StringView sv)
     {
         if (sv.size() > response_.length_)
         {
-            serhandle(ServerHandle::Close);
+            serHandle(ServerHandle::Close);
             response_.state_ = Response::State::Error;
             return false;
         }
@@ -96,7 +96,7 @@ bool Context::resSend(qinmo::StringView sv)
 
         if (sv.size() > response_.length_)
         {
-            serhandle(ServerHandle::Close);
+            serHandle(ServerHandle::Close);
             response_.state_ = Response::State::Error;
             return false;
         }
@@ -244,15 +244,17 @@ void Context::parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, Mess
             break;
         }
     }
-    serhandle(handle);
+    serHandle(handle);
     // return handle;
 }
 
 void Context::reset()
 {
-    // request_ = Request{};
-    // request_.state_ = Request::ParseState::RequestLine;
-    // request_.length_ = 0;
+    request_ = Request{};
+    response_ = Response{};
+    isWaterMark_ = false;
+    bodyFrame_ = BodyFrame::None;
+    handle_ = ServerHandle::None;
 }
 
 
