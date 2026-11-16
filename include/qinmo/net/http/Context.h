@@ -46,7 +46,7 @@ public:
 /*
         server-related
 */
-    void handle(ServerHandle handle);
+    void serhandle(ServerHandle handle);
 
 
 /*
@@ -83,6 +83,8 @@ private:
     void reset();
 
 private:
+    std::string formatHeader() const;
+
     bool isValid(Method method) const;
     bool isValid(Version version) const;
     bool isValid(StateCode stateCode) const;

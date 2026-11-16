@@ -73,7 +73,19 @@ bool Context::resSend(qinmo::StringView sv)
 
     if (Response::State::HeadersSent == response_.state_)
     {
-        ;
+        if (sv.size() > response_.length_)
+        {
+            serhandle(ServerHandle::Close);
+            response_.state_ = Response::State::Error;
+            return false;
+        }
+
+        std::string str(sv.data(), sv.size());
+        conn_->send(str);
+
+        response_.currLength_ += sv.size();
+        if (response_.currLength_ == response_.length_)
+            response_.state_ = Response::State::Complete;
     }
     else if (Response::State::Init == response_.state_)
     {
@@ -84,12 +96,13 @@ bool Context::resSend(qinmo::StringView sv)
 
         if (sv.size() > response_.length_)
         {
-            handle(ServerHandle::Close);
+            serhandle(ServerHandle::Close);
             response_.state_ = Response::State::Error;
             return false;
         }
 
         response_.headers_.add("Content-Length", std::to_string(response_.length_));
+        response_.headers_.add("Connection", "close");
         conn_->send(formatHeader());
 
         std::string str(sv.data(), sv.size());
@@ -132,7 +145,7 @@ bool Context::resSetLength(std::size_t num)
 
 
 
-Context::ServerHandle Context::parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, MessageFunc& message, ContextFunc& complete)
+void Context::parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, MessageFunc& message, ContextFunc& complete)
 {
     ServerHandle handle = ServerHandle::None;
     while (true)
@@ -231,7 +244,8 @@ Context::ServerHandle Context::parse(qinmo::net::PacketBuffer& buffer, ContextFu
             break;
         }
     }
-    return handle;
+    serhandle(handle);
+    // return handle;
 }
 
 void Context::reset()
@@ -241,6 +255,41 @@ void Context::reset()
     // request_.length_ = 0;
 }
 
+
+
+std::string Context::formatHeader() const
+{
+    std::string res;
+    res.reserve(512);
+
+    switch (response_.version_)
+    {
+        case Version::Http10: res += "HTTP/1.0"; break;
+        case Version::Http11: res += "HTTP/1.1"; break;
+        default:
+            QINMO_ERROR("Unknown version info");
+    }
+    res += ' ';
+
+    switch (response_.stateCode_)
+    {
+        case StateCode::Code200: res += "200"; break;
+        case StateCode::Code400: res += "400"; break;
+        case StateCode::Code404: res += "404"; break;
+        default:
+            QINMO_ERROR("Unknown version info");
+    }
+    res += ' ';
+
+    res = res + response_.stateMessage_ + "\r\n";
+
+    const Headers::HeadersType& headers = response_.headers_.headers_;
+    for (std::size_t i = 0; i < headers.size(); ++i)
+        res = res + headers[i].first + ": " + headers[i].second + "\r\n";
+
+    res += "\r\n";
+    return res;
+}
 
 bool Context::isValid(Method method) const
 {
