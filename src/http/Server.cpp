@@ -58,7 +58,7 @@ void Server::setResponseFunc(ResponseBodyFunc func)
 
 void Server::onMessage(const RTcpConnPtr& conn, PacketBuffer& buffer, Timestamp timestamp)
 {
-    Context& context = contexts_.getContext(conn.get());
+    Context& context = contexts_.getContext(conn);
 
     context.parse(buffer, headersFunc_, messageFunc_, completeFunc_);
     Context::ServerHandle handle = context.handle_;
@@ -73,8 +73,8 @@ void Server::onMessage(const RTcpConnPtr& conn, PacketBuffer& buffer, Timestamp 
 
 void Server::connect(const RTcpConnPtr& conn)
 {
-    contexts_.add(conn.get());
-    Context& context = contexts_.getContext(conn.get());
+    contexts_.add(conn);
+    Context& context = contexts_.getContext(conn);
 
     conn->setHighWaterMarkFunc(
         waterMark_,
@@ -105,7 +105,7 @@ void Server::connect(const RTcpConnPtr& conn)
 
 void Server::disconnect(const RTcpConnPtr& conn)
 {
-    contexts_.release(conn.get());
+    contexts_.release(conn);
 }
 
 } // namespace qinmo::net::http

@@ -7,24 +7,36 @@ namespace qinmo::net::http
 
 thread_local std::unordered_map<ContextsManager::TcpConnect*, Context> ContextsManager::contexts_;
 
-void ContextsManager::add(TcpConnect* ptr)
+void ContextsManager::add(TcpPtr ptr, bool isSaveBody)
 {
-    contexts_.insert({ ptr, Context{ } });
+    if (contexts_.find(ptr.get()) != contexts_.end())
+    {
+        QINMO_ERROR("has been insert this context.");
+        return;
+    }
+
+    contexts_.insert({ ptr.get(), Context(ptr, isSaveBody) });
 }
 
-void ContextsManager::release(TcpConnect* ptr)
+void ContextsManager::release(TcpPtr ptr)
 {
-    contexts_.erase(ptr);
+    if (contexts_.find(ptr.get()) != contexts_.end())
+    {
+        QINMO_ERROR("context is non-exists.");
+        return;
+    }
+
+    contexts_.erase(ptr.get());
 }
 
-Context& ContextsManager::getContext(TcpConnect* ptr)
+Context& ContextsManager::getContext(TcpPtr ptr)
 {
-    auto it = contexts_.find(ptr);
+    auto it = contexts_.find(ptr.get());
 
     if (it == contexts_.end())
     {
         QINMO_ERROR("Obtain context before insert.");
-        it = contexts_.insert({ ptr, Context{ } }).first;
+        it = contexts_.insert({ ptr.get(), Context(ptr) }).first;
     }
 
     return it->second;

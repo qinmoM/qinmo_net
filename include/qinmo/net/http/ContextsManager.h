@@ -6,8 +6,6 @@
 namespace qinmo::net
 {
 
-class ReactorTcpConnection;
-
 namespace http
 {
 
@@ -15,12 +13,13 @@ class ContextsManager
 {
 public:
     using TcpConnect = qinmo::net::ReactorTcpConnection;
+    using TcpPtr = qinmo::net::RTcpConnPtr;
 
 public:
-    void add(TcpConnect* ptr);
-    void release(TcpConnect* ptr);
+    void add(TcpPtr ptr, bool isSaveBody = true);
+    void release(TcpPtr ptr);
 
-    Context& getContext(TcpConnect* ptr);
+    Context& getContext(TcpPtr ptr);
 
 private:
     static thread_local std::unordered_map<TcpConnect*, Context> contexts_;
