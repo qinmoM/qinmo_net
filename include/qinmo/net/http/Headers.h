@@ -7,13 +7,15 @@
 namespace qinmo::net::http
 {
 
-class Response;
+class Context;
 
 /// @brief Contain-Only, skip validity check
 class Headers
 {
 public:
     using HeadersType = std::vector<std::pair<std::string, std::string>>;
+
+    friend class Context;
 
 
     static bool isTokenChar(char c);

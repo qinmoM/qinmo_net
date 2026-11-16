@@ -12,7 +12,8 @@ struct Response
     {
         Init,
         HeadersSent,
-        Complete
+        Complete,
+        Error
     };
 
     Version version_ = Version::Unknown;
@@ -23,5 +24,8 @@ struct Response
     std::string body_;
 
     State state_ = State::Init;
+    std::size_t length_ = 0;
+    std::size_t currLength_ = 0;
+    bool isKeepAlive_ = false;
 };
 } // namespace qinmo::net::http

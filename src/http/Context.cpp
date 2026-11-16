@@ -113,14 +113,24 @@ bool Context::resSend(qinmo::StringView sv)
         if (response_.currLength_ == response_.length_)
             response_.state_ = Response::State::Complete;
     }
+
+    return true;
 }
 
 bool Context::resEnd()
 {
-    // if ()
-    // {
-    //     ;
-    // }
+    if (Response::State::HeadersSent != response_.state_)
+        return false;
+
+    if (response_.currLength_ != response_.length_)
+    {
+        serHandle(ServerHandle::Close);
+        response_.state_ = Response::State::Error;
+        return false;
+    }
+
+    response_.state_ = Response::State::Complete;
+    return true;
 }
 
 bool Context::resSetLength(std::size_t num)
@@ -143,8 +153,10 @@ bool Context::resSetKeepAlive(bool isKeepAlive)
 
 
 
-// Context::Context()
-// { }
+Context::Context(qinmo::net::RTcpConnPtr conn, bool isSaveBody)
+    : conn_(conn)
+    , isSaveBody_(isSaveBody)
+{ }
 
 // Context::~Context()
 // {
@@ -253,7 +265,6 @@ void Context::parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, Mess
         }
     }
     serHandle(handle);
-    // return handle;
 }
 
 void Context::reset()
