@@ -136,8 +136,6 @@ bool Context::resSend(qinmo::StringView sv)
             // modify state
             response_.state_ = Response::State::HeadersSent;
             response_.currLength_ += sv.size();
-            if (response_.currLength_ == response_.length_)
-                response_.state_ = Response::State::Complete;
         }
         else if (BodyFrame::Chunked == response_.frame_)
         {
@@ -163,7 +161,27 @@ bool Context::resEnd()
 
     if (Response::State::Init == response_.state_)
     {
-        ;
+        if (BodyFrame::Length == response_.frame_)
+        {
+            // check whether the length is not equal to specified value
+            if (response_.currLength_ != response_.length_)
+            {
+                serHandle(ServerHandle::Close);
+                response_.state_ = Response::State::Error;
+                return false;
+            }
+
+            // build and send response header
+            sendResponseHeaderByMode();
+        }
+        else if (BodyFrame::Chunked == response_.frame_)
+        {
+            // build and send response header
+            sendResponseHeaderByMode();
+
+            // send terminator to client
+            sendBodyByMode(qinmo::StringView());
+        }
     }
     else if (Response::State::HeadersSent == response_.state_)
     {
@@ -182,16 +200,16 @@ bool Context::resEnd()
             // send terminator to client
             sendBodyByMode(qinmo::StringView());
         }
+    }
 
-        // modify state
-        response_.state_ = Response::State::Complete;
-        if (Request::ParseState::Complete == request_.state_)
-        {
-            if (response_.isKeepAlive_)
-                serHandle(ServerHandle::Reset);
-            else
-                serHandle(ServerHandle::Shutdown);
-        }
+    // modify state
+    response_.state_ = Response::State::Complete;
+    if (Request::ParseState::Complete == request_.state_)
+    {
+        if (response_.isKeepAlive_)
+            serHandle(ServerHandle::Reset);
+        else
+            serHandle(ServerHandle::Shutdown);
     }
 
     return true;
