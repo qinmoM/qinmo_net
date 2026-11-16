@@ -66,6 +66,7 @@ public:
     bool resSetStateMessage(qinmo::StringView sv);
     /// @note the following names are not accepted:
     /// @note - `Content-Length`/`Transfer-Encoding` : use `resSetLength()` instead
+    /// @note - `Connection` : use `resSetKeepAlive()` instead
     bool resSetHeader(qinmo::StringView name, qinmo::StringView value);
 
     bool resSend(qinmo::StringView sv);

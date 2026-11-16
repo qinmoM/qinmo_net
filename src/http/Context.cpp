@@ -6,6 +6,13 @@ namespace qinmo::net::http
 {
 
 
+
+void Context::serHandle(ServerHandle handle)
+{
+    handle_ = handle;
+}
+
+
 Method Context::reqMethod() const
 {
     return request_.method_;
@@ -130,6 +137,12 @@ bool Context::resEnd()
     }
 
     response_.state_ = Response::State::Complete;
+    if (response_.isKeepAlive_ && Request::ParseState::Complete == request_.state_)
+    {
+        if (ServerHandle::None == handle_ || ServerHandle::Reset == handle_)
+            serHandle(ServerHandle::Shutdown);
+    }
+
     return true;
 }
 
@@ -190,7 +203,9 @@ void Context::parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, Mess
             }
 
             // parse successful
-            QINMO_DEBUG("Parse request-line successful: ", sv);
+            QINMO_DEBUG("Parse request-line successful: method:", static_cast<int>(request_.method_),
+                " path-query:", request_.path_, '-', request_.query_,
+                " version:", static_cast<int>(request_.version_));
             std::string s;
             buffer.retrieveString(pos + 2, s);
             request_.state_ = Request::ParseState::Headers;
@@ -269,6 +284,7 @@ void Context::parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, Mess
 
 void Context::reset()
 {
+    QINMO_DEBUG("reset in Context: fd:", conn_->getfd());
     request_ = Request{};
     response_ = Response{};
     isWaterMark_ = false;
@@ -417,10 +433,10 @@ bool Context::parseRequestLine(qinmo::StringView sv)
     if (version == Version::Unknown)
         return false;
 
-    request_.method_;
-    request_.path_;
-    request_.query_;
-    request_.version_;
+    request_.method_ = method;
+    request_.path_ = std::string(path.data(), path.size());
+    request_.query_ = std::string(query.data(), query.size());
+    request_.version_ = version;
     return true;
 }
 

@@ -32,11 +32,10 @@ if (UNIX)
         ${CMAKE_CURRENT_SOURCE_DIR}/src/TimerManager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/Timestamp.cpp
 
-        # ${CMAKE_CURRENT_SOURCE_DIR}/src/http/Context.cpp
-        # ${CMAKE_CURRENT_SOURCE_DIR}/src/http/ContextsManager.cpp
-        # ${CMAKE_CURRENT_SOURCE_DIR}/src/http/Headers.cpp
-        # ${CMAKE_CURRENT_SOURCE_DIR}/src/http/Request.cpp
-        # ${CMAKE_CURRENT_SOURCE_DIR}/src/http/Server.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/http/Context.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/http/ContextsManager.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/http/Headers.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/http/Server.cpp
     )
 elseif (WIN32)
     add_library(qinmo_net

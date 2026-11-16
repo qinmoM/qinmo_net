@@ -15,17 +15,19 @@ void ContextsManager::add(TcpPtr ptr, bool isSaveBody)
         return;
     }
 
+    QINMO_TRACE("insert a context: ", ptr->getfd());
     contexts_.insert({ ptr.get(), Context(ptr, isSaveBody) });
 }
 
 void ContextsManager::release(TcpPtr ptr)
 {
-    if (contexts_.find(ptr.get()) != contexts_.end())
+    if (contexts_.find(ptr.get()) == contexts_.end())
     {
         QINMO_ERROR("context is non-exists.");
         return;
     }
 
+    QINMO_TRACE("release context: ", ptr->getfd());
     contexts_.erase(ptr.get());
 }
 

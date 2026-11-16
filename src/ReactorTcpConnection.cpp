@@ -167,6 +167,7 @@ void ReactorTcpConnection::timerCancel(TimerID id)
 
 void ReactorTcpConnection::send(const std::string& str)
 {
+    QINMO_DEBUG("send in connection: ", str);
     if (loop_->isInCurrentThread())
     {
         sendInLoop(qinmo::StringView(str.data(), str.size()));
@@ -187,6 +188,7 @@ void ReactorTcpConnection::send(const PacketBuffer& buf)
 {
     qinmo::StringView sv;
     buf.peekAll(sv);
+    QINMO_DEBUG("send in connection: ", sv);
     if (loop_->isInCurrentThread())
     {
         sendInLoop(sv);

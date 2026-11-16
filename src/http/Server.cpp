@@ -60,8 +60,10 @@ void Server::onMessage(const RTcpConnPtr& conn, PacketBuffer& buffer, Timestamp 
 {
     Context& context = contexts_.getContext(conn);
 
+    QINMO_DEBUG("enter parse in http server");
     context.parse(buffer, headersFunc_, messageFunc_, completeFunc_);
     Context::ServerHandle handle = context.handle_;
+    QINMO_DEBUG("quit parse in http server. handle=", static_cast<int>(handle));
 
     if (Context::ServerHandle::Close == handle)
         conn->close();
@@ -86,6 +88,11 @@ void Server::connect(const RTcpConnPtr& conn)
     conn->setWriteCompleteFunc(
         [this, &context](const RTcpConnPtr& conn) -> void
         {
+            QINMO_DEBUG("enter Response func, fd=", conn->getfd());
+            if (!bodyFunc_)
+                return;
+
+            QINMO_DEBUG("start Response func, fd=", conn->getfd());
             context.isWaterMark_ = false;
             while (!context.isWaterMark_)
             {
@@ -99,6 +106,7 @@ void Server::connect(const RTcpConnPtr& conn)
                 else if (Context::ServerHandle::Reset == handle)
                     context.reset();
             }
+            QINMO_DEBUG("quit Response func, fd=", conn->getfd());
         }
     );
 }
