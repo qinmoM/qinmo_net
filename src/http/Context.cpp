@@ -99,8 +99,7 @@ bool Context::resSend(qinmo::StringView sv)
             }
 
             // send body-pair
-            std::string str(sv.data(), sv.size());
-            conn_->send(str);
+            sendBodyByMode(sv);
 
             // modify state
             response_.currLength_ += sv.size();
@@ -110,20 +109,13 @@ bool Context::resSend(qinmo::StringView sv)
         else if (BodyFrame::Chunked == response_.frame_)
         {
             // send response body-pair
-            std::string str(std::to_string(sv.size()) + "\r\n");
-            str += (std::string() + std::string(sv.data(), sv.size()) + "\r\n");
-            conn_->send(str);
+            sendBodyByMode(sv);
         }
     }
     else if (Response::State::Init == response_.state_)
     {
         // fill default values
-        if (!isValid(response_.version_))
-            response_.version_ = request_.version_;
-        if (!isValid(response_.stateCode_))
-            response_.stateCode_ = StateCode::Code200;
-        if (BodyFrame::None == response_.frame_)
-            response_.frame_ = BodyFrame::Chunked;
+        fillDefault();
 
         if (BodyFrame::Length == response_.frame_)
         {
@@ -136,13 +128,10 @@ bool Context::resSend(qinmo::StringView sv)
             }
 
             // build and send response header
-            response_.headers_.add("Content-Length", std::to_string(response_.length_));
-            response_.headers_.add("Connection", (response_.isKeepAlive_ ? "keep-alive" : "close"));
-            conn_->send(formatHeader());
+            sendResponseHeaderByMode();
 
             // send response body-pair
-            std::string str(sv.data(), sv.size());
-            conn_->send(str);
+            sendBodyByMode(sv);
 
             // modify state
             response_.state_ = Response::State::HeadersSent;
@@ -153,14 +142,10 @@ bool Context::resSend(qinmo::StringView sv)
         else if (BodyFrame::Chunked == response_.frame_)
         {
             // build and send response header
-            response_.headers_.add("Transfer-Encoding", "chunked");
-            response_.headers_.add("Connection", (response_.isKeepAlive_ ? "keep-alive" : "close"));
-            conn_->send(formatHeader());
+            sendResponseHeaderByMode();
 
             // send response body-pair
-            std::string str(std::to_string(sv.size()) + "\r\n");
-            str += (std::string() + std::string(sv.data(), sv.size()) + "\r\n");
-            conn_->send(str);
+            sendBodyByMode(sv);
 
             // modify state
             response_.state_ = Response::State::HeadersSent;
@@ -172,33 +157,41 @@ bool Context::resSend(qinmo::StringView sv)
 
 bool Context::resEnd()
 {
-    if (Response::State::HeadersSent != response_.state_)
+    if (Response::State::Error == response_.state_
+        || Response::State::Complete == response_.state_)
         return false;
 
-    if (BodyFrame::Length == response_.frame_)
+    if (Response::State::Init == response_.state_)
     {
-        // check whether the length is not equal to specified value
-        if (response_.currLength_ != response_.length_)
+        ;
+    }
+    else if (Response::State::HeadersSent == response_.state_)
+    {
+        if (BodyFrame::Length == response_.frame_)
         {
-            serHandle(ServerHandle::Close);
-            response_.state_ = Response::State::Error;
-            return false;
+            // check whether the length is not equal to specified value
+            if (response_.currLength_ != response_.length_)
+            {
+                serHandle(ServerHandle::Close);
+                response_.state_ = Response::State::Error;
+                return false;
+            }
         }
-    }
-    else if (BodyFrame::Chunked == response_.frame_)
-    {
-        // send terminator to client
-        conn_->send(std::string("0\r\n\r\n", 5));
-    }
+        else if (BodyFrame::Chunked == response_.frame_)
+        {
+            // send terminator to client
+            sendBodyByMode(qinmo::StringView());
+        }
 
-    // modify state
-    response_.state_ = Response::State::Complete;
-    if (Request::ParseState::Complete == request_.state_)
-    {
-        if (response_.isKeepAlive_)
-            serHandle(ServerHandle::Reset);
-        else
-            serHandle(ServerHandle::Shutdown);
+        // modify state
+        response_.state_ = Response::State::Complete;
+        if (Request::ParseState::Complete == request_.state_)
+        {
+            if (response_.isKeepAlive_)
+                serHandle(ServerHandle::Reset);
+            else
+                serHandle(ServerHandle::Shutdown);
+        }
     }
 
     return true;
@@ -355,6 +348,57 @@ void Context::reset()
 }
 
 
+
+void Context::sendResponseHeaderByMode()
+{
+    if (BodyFrame::None == response_.frame_)
+    {
+        QINMO_ERROR("must not be BodyFrame::None when send header.");
+        return;
+    }
+
+    response_.headers_.add("Connection", (response_.isKeepAlive_ ? "keep-alive" : "close"));
+
+    if (BodyFrame::Chunked == response_.frame_)
+        response_.headers_.add("Transfer-Encoding", "chunked");
+    else if (BodyFrame::Length == response_.frame_)
+        response_.headers_.add("Content-Length", std::to_string(response_.length_));
+
+    conn_->send(formatHeader());
+}
+
+void Context::fillDefault()
+{
+    if (!isValid(response_.version_))
+        response_.version_ = request_.version_;
+
+    if (!isValid(response_.stateCode_))
+        response_.stateCode_ = StateCode::Code200;
+
+    if (BodyFrame::None == response_.frame_)
+        response_.frame_ = BodyFrame::Chunked;
+}
+
+void Context::sendBodyByMode(qinmo::StringView sv)
+{
+    if (BodyFrame::None == response_.frame_)
+    {
+        QINMO_ERROR("must not be BodyFrame::None when send body.");
+        return;
+    }
+
+    if (BodyFrame::Chunked == response_.frame_)
+    {
+        std::string str(std::to_string(sv.size()) + "\r\n");
+        str += (std::string() + std::string(sv.data(), sv.size()) + "\r\n");
+        conn_->send(str);
+    }
+    else if (BodyFrame::Length == response_.frame_)
+    {
+        std::string str(sv.data(), sv.size());
+        conn_->send(str);
+    }
+}
 
 std::string Context::formatHeader() const
 {

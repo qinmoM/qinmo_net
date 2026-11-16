@@ -97,6 +97,9 @@ private:
     void reset();
 
 private:
+    void sendResponseHeaderByMode();
+    void fillDefault();
+    void sendBodyByMode(qinmo::StringView sv);
     std::string formatHeader() const;
 
     bool isValid(Method method) const;
