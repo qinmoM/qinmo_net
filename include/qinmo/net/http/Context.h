@@ -89,6 +89,8 @@ private:
     bool isValid(Method method) const;
     bool isValid(Version version) const;
     bool isValid(StateCode stateCode) const;
+    bool isValidFieldName(qinmo::StringView sv) const;
+    bool isValidFieldValue(qinmo::StringView sv) const;
 
     /// @return false if parsing error
     /// @note strict matching

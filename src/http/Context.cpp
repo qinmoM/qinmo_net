@@ -64,7 +64,14 @@ bool Context::resSetStateMessage(qinmo::StringView sv)
 
 bool Context::resSetHeader(qinmo::StringView name, qinmo::StringView value)
 {
-    if (Response::State::Init != response_.state_)
+    if (Response::State::Init != response_.state_ || !isValidFieldName(name) || !isValidFieldValue(value))
+        return false;
+
+    std::string n(name.data(), name.size());
+    for (char& c : n)
+        c = qinmo::toLower(c);
+
+    if (n == "Connection" || n == "Transfer-Encoding" || n == "Content-Length")
         return false;
 
     response_.headers_.add(name, value);
@@ -170,11 +177,6 @@ Context::Context(qinmo::net::RTcpConnPtr conn, bool isSaveBody)
     : conn_(conn)
     , isSaveBody_(isSaveBody)
 { }
-
-// Context::~Context()
-// {
-//     ;
-// }
 
 
 
@@ -366,6 +368,28 @@ bool Context::isValid(StateCode stateCode) const
     }
 }
 
+bool Context::isValidFieldName(qinmo::StringView sv) const
+{
+    for (const char c : sv)
+    {
+        if (!Headers::isTokenChar(c))
+            return false;
+    }
+
+    return true;
+}
+
+bool Context::isValidFieldValue(qinmo::StringView sv) const
+{
+    for (const char c : sv)
+    {
+        if (!Headers::isValidValue(static_cast<unsigned char>(c)))
+            return false;
+    }
+
+    return true;
+}
+
 
 
 
@@ -450,11 +474,8 @@ bool Context::parseHeader(qinmo::StringView sv)
     qinmo::StringView value = sv.subview(pos + 1);
 
     // -- name --
-    for (const char c : name)
-    {
-        if (!Headers::isTokenChar(c))
-            return false;
-    }
+    if (!isValidFieldName(name))
+        return false;
 
     // -- value --
     pos = value.find_first_not_of(" \t");
@@ -469,11 +490,8 @@ bool Context::parseHeader(qinmo::StringView sv)
         value.remove_suffix(value.size() - pos - 1);
     }
 
-    for (const char c : value)
-    {
-        if (!Headers::isValidValue(static_cast<unsigned char>(c)))
-            return false;
-    }
+    if (!isValidFieldValue(value))
+        return false;
 
     request_.headers_.add(name, value);
     return true;
