@@ -102,7 +102,7 @@ bool Context::resSend(qinmo::StringView sv)
         }
 
         response_.headers_.add("Content-Length", std::to_string(response_.length_));
-        response_.headers_.add("Connection", "close");
+        response_.headers_.add("Connection", (response_.isKeepAlive_ ? "keep-alive" : "close"));
         conn_->send(formatHeader());
 
         std::string str(sv.data(), sv.size());
@@ -132,6 +132,14 @@ bool Context::resSetLength(std::size_t num)
     return true;
 }
 
+bool Context::resSetKeepAlive(bool isKeepAlive)
+{
+    if (Response::State::Init != response_.state_)
+        return false;
+
+    response_.isKeepAlive_ = isKeepAlive;
+    return true;
+}
 
 
 

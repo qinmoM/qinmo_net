@@ -72,13 +72,13 @@ public:
     bool resEnd();
 
     bool resSetLength(std::size_t num);
+    bool resSetKeepAlive(bool isKeepAlive = true);
 
 public:
     Context(qinmo::net::RTcpConnPtr conn, bool isSaveBody = true);
 
 private:
     void parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, MessageFunc& message, ContextFunc& complete);
-    // bool isParsed() const;
 
     void reset();
 
