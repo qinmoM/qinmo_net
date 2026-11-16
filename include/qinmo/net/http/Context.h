@@ -54,23 +54,38 @@ public:
 /*
         response-related
 */
+    /// @note only be used before calling `resSend()`
     bool resSetVersion(Version version);
+    /// @note only be used before calling `resSend()`
     bool resSetStateCode(StateCode stateCode);
+    /// @note only be used before calling `resSend()`
     bool resSetStateMessage(qinmo::StringView sv);
+    /// @note only be used before calling `resSend()`
     /// @note the following names are disallowed:
-    /// @note - `Content-Length`/`Transfer-Encoding` : use `resSetLength()` instead
+    /// @note - `Content-Length`/`Transfer-Encoding` : use `resSetLength()`/`resSetChunked()` instead
     /// @note - `Connection` : use `resSetKeepAlive()` instead
     /// @return return false if the  name or value contains invalid characters  or  any disallowed name
     bool resSetHeader(qinmo::StringView name, qinmo::StringView value);
 
+    /// @brief send part-body
+    /// @note auto-assemble CRTL and size in chunked mode
     /// @note do not send 0-byte data, Use `resEnd()` to send the terminator in chunked mode
-    /// @return
+    /// @note only be used before calling `resEnd()`
     bool resSend(qinmo::StringView sv);
     /// @brief used to send the terminator in chunked mode; check whether the length is sufficient in length mode
     bool resEnd();
 
+    /// @brief change to `Content-Length` mode
+    /// @param num length of all data
+    /// @note only call this before `resSend()`
+    /// @note auto-write `Content-Length` to header
     bool resSetLength(std::size_t num);
+    /// @brief change to `Transfer-Encoding:chunked` mode
+    /// @note only call this before `resSend()`
+    /// @note auto-write `Transfer-Encoding: chunked` to response header
     bool resSetChunked();
+    /// @brief determine whether keep-alive
+    /// @note auto-write `Connection` to response header
     bool resSetKeepAlive(bool isKeepAlive = true);
 
 public:
