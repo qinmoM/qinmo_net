@@ -11,11 +11,11 @@ void ContextsManager::add(TcpPtr ptr, bool isSaveBody)
 {
     if (contexts_.find(ptr.get()) != contexts_.end())
     {
-        QINMO_ERROR("has been insert this context.");
+        QINMO_ERROR("has been insert this context. fd=", ptr->getfd());
         return;
     }
 
-    QINMO_TRACE("insert a context: ", ptr->getfd());
+    QINMO_TRACE("insert a context. fd=", ptr->getfd());
     contexts_.insert({ ptr.get(), Context(ptr, isSaveBody) });
 }
 
@@ -23,11 +23,11 @@ void ContextsManager::release(TcpPtr ptr)
 {
     if (contexts_.find(ptr.get()) == contexts_.end())
     {
-        QINMO_ERROR("context is non-exists.");
+        QINMO_ERROR("context is non-exists. fd=", ptr->getfd());
         return;
     }
 
-    QINMO_TRACE("release context: ", ptr->getfd());
+    QINMO_TRACE("release context. fd=", ptr->getfd());
     contexts_.erase(ptr.get());
 }
 
@@ -37,7 +37,7 @@ Context& ContextsManager::getContext(TcpPtr ptr)
 
     if (it == contexts_.end())
     {
-        QINMO_ERROR("Obtain context before insert.");
+        QINMO_ERROR("Obtain context before insert. fd=", ptr->getfd());
         it = contexts_.insert({ ptr.get(), Context(ptr) }).first;
     }
 

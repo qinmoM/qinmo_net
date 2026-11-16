@@ -30,7 +30,7 @@ Server::~Server() { }
 
 void Server::start()
 {
-    QINMO_INFO("Http Server is starting.");
+    QINMO_INFO("Http Server is starting."); 
     server_.start();
 }
 
@@ -56,14 +56,10 @@ void Server::setResponseFunc(ResponseBodyFunc func)
 
 
 
-void Server::onMessage(const RTcpConnPtr& conn, PacketBuffer& buffer, Timestamp timestamp)
+void Server::handleConnect(const RTcpConnPtr& conn, Context& context)
 {
-    Context& context = contexts_.getContext(conn);
-
-    QINMO_DEBUG("enter parse in http server");
-    context.parse(buffer, headersFunc_, messageFunc_, completeFunc_);
     Context::ServerHandle handle = context.handle_;
-    QINMO_DEBUG("quit parse in http server. handle=", static_cast<int>(handle));
+    QINMO_DEBUG("handle connect. handleId=", static_cast<int>(handle));
 
     if (Context::ServerHandle::Close == handle)
         conn->close();
@@ -73,42 +69,49 @@ void Server::onMessage(const RTcpConnPtr& conn, PacketBuffer& buffer, Timestamp 
         context.reset();
 }
 
+
+
+void Server::onMessage(const RTcpConnPtr& conn, PacketBuffer& buffer, Timestamp timestamp)
+{
+    Context& context = contexts_.getContext(conn);
+
+    QINMO_DEBUG("enter parse in http server");
+    context.parse(buffer, headersFunc_, messageFunc_, completeFunc_);
+    handleConnect(conn, context);
+    QINMO_DEBUG("quit parse in http server.");
+}
+
 void Server::connect(const RTcpConnPtr& conn)
 {
     contexts_.add(conn);
     Context& context = contexts_.getContext(conn);
 
-    conn->setHighWaterMarkFunc(
-        waterMark_,
-        [&context](const RTcpConnPtr& conn, std::size_t size) -> void
-        {
-            context.isWaterMark_ = true;
-        }
-    );
-    conn->setWriteCompleteFunc(
-        [this, &context](const RTcpConnPtr& conn) -> void
-        {
-            QINMO_DEBUG("enter Response func, fd=", conn->getfd());
-            if (!bodyFunc_)
-                return;
-
-            QINMO_DEBUG("start Response func, fd=", conn->getfd());
-            context.isWaterMark_ = false;
-            while (!context.isWaterMark_)
+    // set event function if exists response-func
+    if (bodyFunc_)
+    {
+        conn->setHighWaterMarkFunc(
+            waterMark_,
+            [&context](const RTcpConnPtr&, std::size_t) -> void
             {
-                bodyFunc_(context);
-                Context::ServerHandle handle = context.handle_;
+                context.isWaterMark_ = true;
+            });
+        conn->setWriteCompleteFunc(
+            [this, &context](const RTcpConnPtr& conn) -> void
+            {
+                QINMO_DEBUG("enter Response func, fd=", conn->getfd());
+                context.isWaterMark_ = false;
 
-                if (Context::ServerHandle::Close == handle)
-                    conn->close();
-                else if (Context::ServerHandle::Shutdown == handle)
-                    conn->shutdown();
-                else if (Context::ServerHandle::Reset == handle)
-                    context.reset();
-            }
-            QINMO_DEBUG("quit Response func, fd=", conn->getfd());
-        }
-    );
+                while (!context.isWaterMark_
+                    && Response::State::HeadersSent == context.response_.state_
+                    && Request::ParseState::Error != context.request_.state_)
+                {
+                    bodyFunc_(context);
+                    handleConnect(conn, context);
+                }
+
+                QINMO_DEBUG("quit Response func, fd=", conn->getfd());
+            });
+    }
 }
 
 void Server::disconnect(const RTcpConnPtr& conn)

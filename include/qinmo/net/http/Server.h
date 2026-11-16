@@ -40,6 +40,8 @@ public:
     void setResponseFunc(ResponseBodyFunc func);
 
 private:
+    void handleConnect(const RTcpConnPtr& conn, Context& context);
+
     void onMessage(const RTcpConnPtr& conn, PacketBuffer& buffer, Timestamp timestamp);
     void connect(const RTcpConnPtr& conn);
     void disconnect(const RTcpConnPtr& conn);

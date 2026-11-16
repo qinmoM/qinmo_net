@@ -13,7 +13,8 @@ struct Request
         RequestLine,
         Headers,
         Body,
-        Complete
+        Complete,
+        Error
     };
 
 
