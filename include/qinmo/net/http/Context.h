@@ -48,7 +48,13 @@ public:
 */
     Method reqMethod() const;
     Version reqVersion() const;
-    std::vector<qinmo::StringView> reqHeader(qinmo::StringView name) const;
+    /// @return return true if the `name` existed
+    bool reqHasHeader(qinmo::StringView name) const;
+    /// @param nameToValue input the field `name`, output the field `value` if return true
+    /// @return return true if the field name exists and occurs once only
+    bool reqSingleHeader(qinmo::StringView& nameToValue) const;
+    /// @return all of value by 'name' parameter
+    std::vector<qinmo::StringView> reqAllHeaders(qinmo::StringView name) const;
     qinmo::StringView reqBody() const;
 
 

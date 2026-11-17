@@ -23,7 +23,17 @@ Version Context::reqVersion() const
     return request_.version_;
 }
 
-std::vector<qinmo::StringView> Context::reqHeader(qinmo::StringView name) const
+bool Context::reqHasHeader(qinmo::StringView name) const
+{
+    return request_.headers_.has(name);
+}
+
+bool Context::reqSingleHeader(qinmo::StringView& nameToValue) const
+{
+    return request_.headers_.getSingle(nameToValue, nameToValue);
+}
+
+std::vector<qinmo::StringView> Context::reqAllHeaders(qinmo::StringView name) const
 {
     return request_.headers_.getAll(name);
 }
