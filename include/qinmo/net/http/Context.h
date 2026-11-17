@@ -37,9 +37,10 @@ public:
 
 public:
 /*
-        server-related
+        context-related
 */
-    void serHandle(ServerHandle handle);
+    /// @brief close this connection
+    void conClose();
 
 
 /*
@@ -100,6 +101,7 @@ private:
     void reset();
 
 private:
+    void serHandle(ServerHandle handle);
     bool responseError();
     void sendResponseHeaderByMode();
     void fillDefault();

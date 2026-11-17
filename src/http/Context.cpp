@@ -6,11 +6,11 @@ namespace qinmo::net::http
 {
 
 
-
-void Context::serHandle(ServerHandle handle)
+void Context::conClose()
 {
-    handle_ = handle;
+    serHandle(ServerHandle::Close);
 }
+
 
 
 Method Context::reqMethod() const
@@ -350,6 +350,24 @@ void Context::reset()
 }
 
 
+
+void Context::serHandle(ServerHandle handle)
+{
+    if (ServerHandle::Close == handle_ || ServerHandle::None == handle || handle_ == handle)
+        return;
+
+    if (ServerHandle::None == handle_ || ServerHandle::Close == handle)
+    {
+        handle_ = handle;
+        return;
+    }
+
+    if ((ServerHandle::Reset == handle && ServerHandle::Shutdown == handle_)
+        || (ServerHandle::Shutdown == handle && ServerHandle::Reset == handle_))
+    {
+        QINMO_ERROR("reset and shutdown cannot be called together");
+    }
+}
 
 bool Context::responseError()
 {
