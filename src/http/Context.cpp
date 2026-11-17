@@ -305,7 +305,7 @@ void Context::parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, Mess
             // end of header
             if (0 == pos)
             {
-                if (!verifyHeader())
+                if (!verifyRequestHeader())
                 {
                     handle = ServerHandle::Close;
                     break;
@@ -315,6 +315,15 @@ void Context::parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, Mess
 
                 if (headers)
                     headers(*this);
+
+                if (BodyFrame::None == request_.frame_
+                    || (BodyFrame::Length == request_.frame_ && 0 == request_.length_))
+                {
+                    request_.state_ = Request::ParseState::Complete;
+
+                    if (complete)
+                        complete(*this);
+                }
             }
         }
         else if (Request::ParseState::Body == request_.state_)
@@ -322,13 +331,46 @@ void Context::parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, Mess
             // obtain the current buffer data
             qinmo::StringView sv;
             buffer.peekAll(sv);
-            std::size_t num = std::min(sv.size(), request_.length_ - request_.currLength_);
 
-            std::string s;
-            buffer.retrieveString(num, s);
-            request_.currLength_ += num;
-            if (isSaveBody_)
-                request_.body_.append(s);
+            if (BodyFrame::Length == request_.frame_)
+            {
+                std::size_t num = std::min(sv.size(), request_.length_ - request_.currLength_);
+                std::string s;
+                buffer.retrieveString(num, s);
+
+                // modify state
+                request_.currLength_ += num;
+                if (isSaveBody_)
+                    request_.body_.append(s);
+            }
+            else if (BodyFrame::Chunked == request_.frame_)
+            {
+                if (request_.isDigit_)
+                {
+                    std::size_t pos = sv.find("\r\n");
+                    if (qinmo::StringView::npos == pos)
+                        break;
+
+                    if (0 == pos)
+                    {
+                        handle = ServerHandle::Close;
+                        break;
+                    }
+
+                    std::size_t num = std::stoul(std::string(sv.data(), pos), nullptr, 16);
+                    std::string s;
+                    buffer.retrieveString(pos + 2, s);
+                    request_.targetCount_ = num;
+                    request_.isDigit_ = false;
+                }
+                else
+                {
+                    if (sv.size() < request_.targetCount_ + 2)
+                        break;
+
+                    ;
+                }
+            }
 
             if (message)
                 message(*this, qinmo::StringView(s.data(), s.size()));
@@ -640,20 +682,32 @@ bool Context::parseHeader(qinmo::StringView sv)
 
 
 
-bool Context::verifyHeader()
+bool Context::verifyRequestHeader()
 {
     Headers& headers = request_.headers_;
 
     qinmo::StringView sv;
-    bool hasLength = headers.has("context-length");
-    if (!hasLength)
-        return true;
-
-    if (!headers.getSingle("context-length", sv))
+    bool hasLength = headers.has("content-length");
+    bool hasChunked = headers.has("transfer-encoding");
+    if (hasChunked && hasLength)
         return false;
 
-    request_.length_ = std::stoul(std::string(sv.data(), sv.size()));
-    // currLength_ = 0;
+    if (hasChunked)
+    {
+        if (!headers.getSingle("transfer-encoding", sv))
+            return false;
+
+        request_.frame_ = BodyFrame::Chunked;
+    }
+    else if (hasLength)
+    {
+        if (!headers.getSingle("context-length", sv))
+            return false;
+
+        request_.frame_ = BodyFrame::Length;
+        request_.length_ = std::stoul(std::string(sv.data(), sv.size()));
+    }
+
     return true;
 }
 } // namespace qinmo::net::http

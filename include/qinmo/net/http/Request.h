@@ -30,5 +30,8 @@ struct Request
     ParseState state_ = ParseState::RequestLine;
     std::size_t length_ = 0;
     std::size_t currLength_ = 0;
+    std::size_t targetCount_ = 0;
+    std::size_t currCount_ = 0;
+    bool isDigit_ = true;
 };
 } // namespace qinmo::net::http
