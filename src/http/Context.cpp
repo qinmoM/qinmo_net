@@ -92,11 +92,7 @@ bool Context::resSend(qinmo::StringView sv)
         {
             // check whether the length is greater than specified value
             if (sv.size() > response_.length_ - response_.currLength_)
-            {
-                serHandle(ServerHandle::Close);
-                response_.state_ = Response::State::Error;
-                return false;
-            }
+                return responseError();
 
             // send body-pair
             sendBodyByMode(sv);
@@ -121,11 +117,7 @@ bool Context::resSend(qinmo::StringView sv)
         {
             // check whether it exceeds the specified byte-count
             if (sv.size() > response_.length_)
-            {
-                serHandle(ServerHandle::Close);
-                response_.state_ = Response::State::Error;
-                return false;
-            }
+                return responseError();
 
             // build and send response header
             sendResponseHeaderByMode();
@@ -165,11 +157,7 @@ bool Context::resEnd()
         {
             // check whether the length is not equal to specified value
             if (response_.currLength_ != response_.length_)
-            {
-                serHandle(ServerHandle::Close);
-                response_.state_ = Response::State::Error;
-                return false;
-            }
+                return responseError();
 
             // build and send response header
             sendResponseHeaderByMode();
@@ -189,11 +177,7 @@ bool Context::resEnd()
         {
             // check whether the length is not equal to specified value
             if (response_.currLength_ != response_.length_)
-            {
-                serHandle(ServerHandle::Close);
-                response_.state_ = Response::State::Error;
-                return false;
-            }
+                return responseError();
         }
         else if (BodyFrame::Chunked == response_.frame_)
         {
@@ -366,6 +350,13 @@ void Context::reset()
 }
 
 
+
+bool Context::responseError()
+{
+    serHandle(ServerHandle::Close);
+    response_.state_ = Response::State::Error;
+    return false;
+}
 
 void Context::sendResponseHeaderByMode()
 {

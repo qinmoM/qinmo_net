@@ -68,11 +68,14 @@ public:
     bool resSetHeader(qinmo::StringView name, qinmo::StringView value);
 
     /// @brief send part-body
+    /// @note the first call, implicitly sends response header
     /// @note auto-assemble CRTL and size in chunked mode
     /// @note do not send 0-byte data, Use `resEnd()` to send the terminator in chunked mode
     /// @note only be used before calling `resEnd()`
     bool resSend(qinmo::StringView sv);
     /// @brief used to send the terminator in chunked mode; check whether the length is sufficient in length mode
+    /// @note the first call without call `resSend()`, implicitly sends response header
+    /// @note must call this to terminate even in the length mode
     bool resEnd();
 
     /// @brief change to `Content-Length` mode
@@ -97,6 +100,7 @@ private:
     void reset();
 
 private:
+    bool responseError();
     void sendResponseHeaderByMode();
     void fillDefault();
     void sendBodyByMode(qinmo::StringView sv);
