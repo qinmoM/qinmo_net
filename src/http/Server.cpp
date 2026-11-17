@@ -4,8 +4,10 @@
 namespace qinmo::net::http
 {
 
-Server::Server(EventLoop* loop, const InetAddr& listenAddr, unsigned int numThread, bool reusePort)
+Server::Server(EventLoop* loop, const InetAddr& listenAddr, unsigned int numThread, bool isSaveBody, std::size_t waterMark, bool reusePort)
     : server_(loop, listenAddr, numThread, reusePort)
+    , isSaveBody_(isSaveBody)
+    , waterMark_(waterMark)
 {
     server_.setConnectFunc(
         [this](const RTcpConnPtr& conn)

@@ -18,7 +18,7 @@ using ResponseBodyFunc = ContextFunc;
 class Server
 {
 public:
-    Server(EventLoop* loop, const InetAddr& listenAddr, unsigned int numThread = 0, bool reusePort = false);
+    Server(EventLoop* loop, const InetAddr& listenAddr, unsigned int numThread = 0, bool isSaveBody = true, std::size_t waterMark = 1024 * 1024 * 1, bool reusePort = false);
     ~Server();
 
     Server(const Server&) = delete;
@@ -55,7 +55,8 @@ private:
     RequestCompleteFunc completeFunc_;
     ResponseBodyFunc bodyFunc_;
 
-    std::size_t waterMark_ = 1024 * 1024 * 1;
+    std::size_t waterMark_;
+    bool isSaveBody_;
 
 };
 } // namespace qinmo::net::http
