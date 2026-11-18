@@ -41,6 +41,8 @@ public:
 */
     /// @brief close this connection
     void conClose();
+    /// @return return true if connect will be close
+    bool conShouldClose() const;
 
 
 /*

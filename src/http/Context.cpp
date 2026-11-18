@@ -11,6 +11,11 @@ void Context::conClose()
     serHandle(ServerHandle::Close);
 }
 
+bool Context::conShouldClose() const
+{
+    return ServerHandle::Close == handle_;
+}
+
 
 
 Method Context::reqMethod() const
@@ -534,7 +539,7 @@ void Context::sendBodyByMode(qinmo::StringView sv)
         std::string str;
         if (sv.empty())
         {
-            str = "0";
+            str = "0\r\n";
         }
         else
         {
@@ -773,6 +778,9 @@ bool Context::verifyRequestHeader()
     if (hasChunked)
     {
         if (!headers.getSingle("transfer-encoding", sv))
+            return false;
+
+        if (Version::Http10 == request_.version_)
             return false;
 
         std::string temp = std::string(sv.data(), sv.size());
