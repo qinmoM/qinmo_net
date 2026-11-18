@@ -125,6 +125,7 @@ private:
     bool parseRequestLine(qinmo::StringView sv);
     bool parseHeader(qinmo::StringView sv);
 
+    bool validStateMessageChar(char c);
     /// @brief verify whether the request headers is valid
     bool verifyRequestHeader();
 

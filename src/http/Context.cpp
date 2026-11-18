@@ -68,6 +68,12 @@ bool Context::resSetStateMessage(qinmo::StringView sv)
     if (Response::State::Init != response_.state_)
         return false;
 
+    for (char c : sv)
+    {
+        if (!validStateMessageChar(c))
+            return false;
+    }
+
     response_.stateMessage_ = std::string(sv.data(), sv.size());
     return true;
 }
@@ -109,8 +115,6 @@ bool Context::resSend(qinmo::StringView sv)
 
             // modify state
             response_.currLength_ += sv.size();
-            if (response_.currLength_ == response_.length_)
-                response_.state_ = Response::State::Complete;
         }
         else if (BodyFrame::Chunked == response_.frame_)
         {
@@ -333,6 +337,8 @@ void Context::parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, Mess
             // obtain the current buffer data
             qinmo::StringView sv;
             buffer.peekAll(sv);
+            if (sv.empty())
+                break;
 
             if (BodyFrame::Length == request_.frame_)
             {
@@ -372,7 +378,18 @@ void Context::parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, Mess
                     }
 
                     std::size_t num = 0;
-                    try { num = std::stoul(std::string(sv.data(), pos), nullptr, 16); }
+                    std::string temp(sv.data(), pos);
+                    for (char c : temp)
+                    {
+                        if (!qinmo::isDigit(c))
+                        {
+                            request_.state_ = Request::ParseState::Error;
+                            serHandle(ServerHandle::Close);
+                            QINMO_DEBUG("parse length failed");
+                            break;
+                        }
+                    }
+                    try { num = std::stoul(temp, nullptr, 16); }
                     catch(...)
                     {
                         request_.state_ = Request::ParseState::Error;
@@ -738,6 +755,11 @@ bool Context::parseHeader(qinmo::StringView sv)
 
 
 
+bool Context::validStateMessageChar(char c)
+{
+    return c < 0 || '\t' == c || (' ' <= c && 127 > c);
+}
+
 bool Context::verifyRequestHeader()
 {
     Headers& headers = request_.headers_;
@@ -753,6 +775,13 @@ bool Context::verifyRequestHeader()
         if (!headers.getSingle("transfer-encoding", sv))
             return false;
 
+        std::string temp = std::string(sv.data(), sv.size());
+        for (char& c : temp)
+            c = qinmo::toLower(c);
+
+        if (temp != "chunked")
+            return false;
+
         request_.frame_ = BodyFrame::Chunked;
     }
     else if (hasLength)
@@ -761,6 +790,12 @@ bool Context::verifyRequestHeader()
             return false;
 
         request_.frame_ = BodyFrame::Length;
+        for (char c : sv)
+        {
+            if (!qinmo::isDigit(c))
+                return false;
+        }
+
         try { request_.length_ = std::stoul(std::string(sv.data(), sv.size())); }
         catch(...) { return false; }
     }
