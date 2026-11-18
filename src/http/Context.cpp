@@ -81,7 +81,7 @@ bool Context::resSetHeader(qinmo::StringView name, qinmo::StringView value)
     for (char& c : n)
         c = qinmo::toLower(c);
 
-    if (n == "Connection" || n == "Transfer-Encoding" || n == "Content-Length")
+    if (n == "connection" || n == "transfer-encoding" || n == "content-length")
         return false;
 
     response_.headers_.add(name, value);
@@ -514,8 +514,18 @@ void Context::sendBodyByMode(qinmo::StringView sv)
 
     if (BodyFrame::Chunked == response_.frame_)
     {
-        std::string str(std::to_string(sv.size()) + "\r\n");
-        str += (std::string() + std::string(sv.data(), sv.size()) + "\r\n");
+        std::string str;
+        if (sv.empty())
+        {
+            str = "0";
+        }
+        else
+        {
+            std::ostringstream oss;
+            oss << std::hex << sv.size() << "\r\n";
+            str = oss.str();
+        }
+        str += (std::string(sv.data(), sv.size()) + "\r\n");
         conn_->send(str);
     }
     else if (BodyFrame::Length == response_.frame_)
@@ -747,7 +757,7 @@ bool Context::verifyRequestHeader()
     }
     else if (hasLength)
     {
-        if (!headers.getSingle("context-length", sv))
+        if (!headers.getSingle("content-length", sv))
             return false;
 
         request_.frame_ = BodyFrame::Length;
