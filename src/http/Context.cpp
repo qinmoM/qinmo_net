@@ -342,6 +342,18 @@ void Context::parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, Mess
                 request_.currLength_ += num;
                 if (isSaveBody_)
                     request_.body_.append(s);
+
+                if (message)
+                    message(*this, qinmo::StringView(s.data(), s.size()));
+
+                // complete body
+                if (request_.currLength_ == request_.length_)
+                {
+                    request_.state_ = Request::ParseState::Complete;
+
+                    if (complete)
+                        complete(*this);
+                }
             }
             else if (BodyFrame::Chunked == request_.frame_)
             {
@@ -365,23 +377,40 @@ void Context::parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, Mess
                 }
                 else
                 {
-                    if (sv.size() < request_.targetCount_ + 2)
-                        break;
+                    if (request_.targetCount_ == request_.currCount_)
+                    {
+                        if (sv.size() < 2)
+                            break;
 
-                    ;
+                        std::string s;
+                        buffer.retrieveString(2, s);
+
+                        if (0 == request_.targetCount_)
+                        {
+                            request_.state_ = Request::ParseState::Complete;
+
+                            if (complete)
+                                complete(*this);
+                        }
+
+                        request_.targetCount_ = 0;
+                        request_.currCount_ = 0;
+                        request_.isDigit_ = true;
+                    }
+                    else
+                    {
+                        std::size_t num = std::min(sv.size(), request_.targetCount_ - request_.currCount_);
+                        std::string s;
+                        buffer.retrieveString(num, s);
+
+                        request_.currCount_ += num;
+                        if (isSaveBody_)
+                            request_.body_.append(s);
+
+                        if (message)
+                            message(*this, qinmo::StringView(s.data(), s.size()));
+                    }
                 }
-            }
-
-            if (message)
-                message(*this, qinmo::StringView(s.data(), s.size()));
-
-            // complete body
-            if (request_.currLength_ == request_.length_)
-            {
-                request_.state_ = Request::ParseState::Complete;
-
-                if (complete)
-                    complete(*this);
             }
         }
         else
