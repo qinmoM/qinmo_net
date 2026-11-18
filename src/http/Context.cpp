@@ -265,6 +265,7 @@ void Context::parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, Mess
             // parse failed
             if (!parseRequestLine(sv.subview(0, pos)))
             {
+                request_.state_ = Request::ParseState::Error;
                 handle = ServerHandle::Close;
                 QINMO_DEBUG("Parse request-line failed: ", sv);
                 break;
@@ -292,8 +293,9 @@ void Context::parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, Mess
             // parse headers
             if (0 != pos && !parseHeader(sv.subview(0, pos)))
             {
-                QINMO_DEBUG("Parse Header failed: ", sv);
+                request_.state_ = Request::ParseState::Error;
                 handle = ServerHandle::Close;
+                QINMO_DEBUG("Parse Header failed: ", sv);
                 break;
             }
 
@@ -369,7 +371,15 @@ void Context::parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, Mess
                         break;
                     }
 
-                    std::size_t num = std::stoul(std::string(sv.data(), pos), nullptr, 16);
+                    std::size_t num = 0;
+                    try { num = std::stoul(std::string(sv.data(), pos), nullptr, 16); }
+                    catch(...)
+                    {
+                        request_.state_ = Request::ParseState::Error;
+                        serHandle(ServerHandle::Close);
+                        QINMO_DEBUG("parse length failed");
+                        break;
+                    }
                     std::string s;
                     buffer.retrieveString(pos + 2, s);
                     request_.targetCount_ = num;
@@ -384,6 +394,13 @@ void Context::parse(qinmo::net::PacketBuffer& buffer, ContextFunc& headers, Mess
 
                         std::string s;
                         buffer.retrieveString(2, s);
+                        if ("\r\n" != s)
+                        {
+                            request_.state_ = Request::ParseState::Error;
+                            serHandle(ServerHandle::Close);
+                            QINMO_DEBUG("parse body failed");
+                            break;
+                        }
 
                         if (0 == request_.targetCount_)
                         {
@@ -734,7 +751,8 @@ bool Context::verifyRequestHeader()
             return false;
 
         request_.frame_ = BodyFrame::Length;
-        request_.length_ = std::stoul(std::string(sv.data(), sv.size()));
+        try { request_.length_ = std::stoul(std::string(sv.data(), sv.size())); }
+        catch(...) { return false; }
     }
 
     return true;
